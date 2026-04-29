@@ -888,7 +888,9 @@ function saveSelectedSubjectsToRepo() {
 
         /* Surgical Fix: Sheets Overview & Admin Home mobile scroll */
         #sheetsPage, #adminHomePage {
-            overflow: visible !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            max-height: none !important;
         }
 
         /* Surgical Fix: Sheets Overview & Initial Page Mobile Layout Alignment */
@@ -5997,11 +5999,28 @@ function _matchExamNumber(transcript, form, subject) {
         _voiceMode = 'score';
         var scoreRecognition = _getSpeechRecognition();
         if (scoreRecognition) {
+            scoreRecognition.maxAlternatives = 5;
             _voiceRecognition = scoreRecognition;
             scoreRecognition.onresult = function(event) {
-                var transcript = event.results[0][0].transcript.trim();
-                _setVoiceHeard(transcript);
-                _applyVoiceScore(transcript);
+                // SURGICAL FIX: Try all alternatives and pick the one that gives a valid score
+                var bestTranscript = '';
+                var bestScore = null;
+                for (var a = 0; a < event.results[0].length; a++) {
+                    var t = event.results[0][a].transcript.trim();
+                    var s = _extractScoreFromTranscript(t);
+                    if (s !== null) {
+                        bestScore = s;
+                        bestTranscript = t;
+                        break;
+                    }
+                    if (!bestTranscript) bestTranscript = t;
+                }
+                _setVoiceHeard(bestTranscript);
+                if (bestScore !== null) {
+                    _applyVoiceScore(bestTranscript);
+                } else {
+                    _setVoiceStatus('Could not understand score from "' + bestTranscript + '". Try again.', '#e74c3c');
+                }
             };
             scoreRecognition.onerror = function(event) {
                 console.warn('Score speech error:', event.error);
@@ -6025,11 +6044,9 @@ function startVoiceScoreEntry() {
 }
 
 function _applyVoiceScore(transcript) {
-    // Extract numeric score from transcript
-    var scoreStr = transcript.replace(/[^0-9]/g, '');
-    var score = parseInt(scoreStr, 10);
+    var score = _extractScoreFromTranscript(transcript);
 
-    if (isNaN(score) || scoreStr === '') {
+    if (score === null) {
         _setVoiceStatus('Could not understand score from "' + transcript + '". Try again.', '#e74c3c');
         return;
     }
@@ -6062,6 +6079,64 @@ function _applyVoiceScore(transcript) {
         _highlightRow(null);
         startVoiceExamNumber(true); // silent=true so it doesn't show alerts
     }, 500);
+}
+
+// --- SURGICAL FIX: Extract score from speech transcript (handles digits + number words) ---
+function _extractScoreFromTranscript(transcript) {
+    var lower = transcript.toLowerCase().trim();
+
+    // Try direct digit extraction first: "78", "seven eight"
+    var digitStr = lower.replace(/[^0-9]/g, '');
+    if (digitStr.length > 0) {
+        var num = parseInt(digitStr, 10);
+        if (num >= 0 && num <= 100) return num;
+    }
+
+    // Try word-to-number conversion
+    var wordNum = _wordsToNumber(lower);
+    if (wordNum !== null && wordNum >= 0 && wordNum <= 100) return wordNum;
+
+    return null;
+}
+
+// --- SURGICAL FIX: Convert spoken number words to integer ---
+function _wordsToNumber(text) {
+    var ones = { 'zero':0,'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':11,'twelve':12,'thirteen':13,'fourteen':14,'fifteen':15,'sixteen':16,'seventeen':17,'eighteen':18,'nineteen':19 };
+    var tens = { 'twenty':20,'thirty':30,'forty':40,'fifty':50,'sixty':60,'seventy':70,'eighty':80,'ninety':90,'ninety':90 };
+
+    // Remove common noise words
+    text = text.replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim();
+
+    // Try direct match on compound words like "seventy-three" or "seventy three"
+    text = text.replace(/-/g, ' ');
+
+    var words = text.split(' ');
+    var total = 0;
+    var current = 0;
+
+    for (var i = 0; i < words.length; i++) {
+        var w = words[i];
+        if (ones[w] !== undefined) {
+            current += ones[w];
+        } else if (tens[w] !== undefined) {
+            current += tens[w];
+        } else if (w === 'hundred' && current > 0) {
+            current *= 100;
+        } else if (w === 'and') {
+            continue;
+        }
+    }
+    total = current;
+
+    // Also try parsing hyphenated compound directly: "seventy-three"
+    for (var i = 0; i < words.length; i++) {
+        if (tens[words[i]] !== undefined && i + 1 < words.length && ones[words[i+1]] !== undefined) {
+            var val = tens[words[i]] + ones[words[i+1]];
+            if (val >= 0 && val <= 100) return val;
+        }
+    }
+
+    return (total > 0 && total <= 100) ? total : null;
 }
 
 // --- SNE COLUMN VISIBILITY FUNCTIONS ---
