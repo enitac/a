@@ -888,9 +888,7 @@ function saveSelectedSubjectsToRepo() {
 
         /* Surgical Fix: Sheets Overview & Admin Home mobile scroll */
         #sheetsPage, #adminHomePage {
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            max-height: none !important;
+            overflow: visible !important;
         }
 
         /* Surgical Fix: Sheets Overview & Initial Page Mobile Layout Alignment */
@@ -1983,10 +1981,6 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
 </select>
 
 <button onclick="generateStudentPasswords()" style="background:#8e44ad;">Generate Passwords</button>
-<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:5px;">
-    <button onclick="printStudentPasswords()" class="small-btn" style="background:#28a745;max-width:180px;margin-top:5px;">Print Passwords</button>
-    <button onclick="resetStudentPasswords()" class="small-btn" style="background:#e74c3c;max-width:180px;margin-top:5px;">Reset All to 000</button>
-</div>
 <p id="passwordGenStatus" style="font-size:11px; color:#2ecc71;"></p>
 <div id="passwordGenTableContainer" style="margin-top:10px;max-height:400px;overflow-y:auto;"></div>
 
@@ -3240,89 +3234,6 @@ async function loadPasswordTable() {
         await initializeConfig(null);
     }
     await displayPasswordTable(form);
-}
-
-// --- SURGICAL FIX: Print student passwords for a class ---
-function printStudentPasswords() {
-    var form = document.getElementById('passwordGenClassSelect').value;
-    if (!form) {
-        alert('Please select a class first.');
-        return;
-    }
-    var container = document.getElementById('passwordGenTableContainer');
-    var table = container ? container.querySelector('table') : null;
-    if (!table) {
-        alert('No password table to print. Generate passwords first.');
-        return;
-    }
-    var formDisplay = form.toUpperCase().replace('FORM', 'Form ');
-    var term = currentConfig ? currentConfig.term : '';
-    var year = currentConfig ? (currentConfig.year || '') : '';
-    var schoolName = 'MAGAWA SECONDARY SCHOOL';
-    var printWin = window.open('', '_blank', 'width=800,height=600');
-    printWin.document.write('<!DOCTYPE html><html><head><title>Student Passwords - ' + formDisplay + '</title>');
-    printWin.document.write('<style>');
-    printWin.document.write('body{font-family:Arial,sans-serif;padding:30px;color:#333;}');
-    printWin.document.write('h1{text-align:center;font-size:18px;margin-bottom:2px;}');
-    printWin.document.write('h2{text-align:center;font-size:14px;color:#555;font-weight:normal;margin-top:0;margin-bottom:15px;}');
-    printWin.document.write('table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}');
-    printWin.document.write('th,td{border:1px solid #333;padding:6px 10px;text-align:center;}');
-    printWin.document.write('th{background:#ecf0f1;font-weight:700;}');
-    printWin.document.write('td:nth-child(2){text-align:left;}');
-    printWin.document.write('td:nth-child(3){font-weight:700;font-size:15px;letter-spacing:3px;color:#1a2a6c;}');
-    printWin.document.write('p.note{font-size:10px;color:#888;margin-top:20px;text-align:center;}');
-    printWin.document.write('@media print{body{padding:15px;}h1{font-size:16px;}}');
-    printWin.document.write('</style></head><body>');
-    printWin.document.write('<h1>' + schoolName + '</h1>');
-    printWin.document.write('<h2>Student Passwords — ' + formDisplay + (term ? ' — Term ' + term : '') + (year ? ' — ' + year : '') + '</h2>');
-    printWin.document.write(table.outerHTML);
-    printWin.document.write('<p class="note">Keep this list secure. Each student must use their own 4-digit password to access results.</p>');
-    printWin.document.write('<div style="text-align:center;margin-top:15px;"><button onclick="window.print()" style="padding:8px 20px;font-size:14px;cursor:pointer;">Print This Page</button></div>');
-    printWin.document.write('</body></html>');
-    printWin.document.close();
-}
-
-// --- SURGICAL FIX: Reset all student passwords in a class to default 000 ---
-async function resetStudentPasswords() {
-    var form = document.getElementById('passwordGenClassSelect').value;
-    if (!form) {
-        alert('Please select a class first.');
-        return;
-    }
-    var token = getDecryptedToken();
-    if (!token) {
-        alert('Authorization Code required. Please enter it in Admin Dashboard.');
-        return;
-    }
-    if (!confirm('Reset ALL passwords for ' + form.toUpperCase().replace('FORM', 'Form ') + ' to default 000?\n\nStudents will use 000 to access their results until new passwords are generated.')) {
-        return;
-    }
-    showLoading();
-    try {
-        var data = await fetchClassData(form);
-        if (!data || data.length === 0) {
-            alert('No students found in ' + form + '. Upload a CSV first.');
-            hideLoading();
-            return;
-        }
-        if (!currentConfig.studentPasswords) currentConfig.studentPasswords = {};
-        currentConfig.studentPasswords[form] = {};
-        for (var i = 0; i < data.length; i++) {
-            var examNo = data[i]['Exam Number'];
-            if (examNo) {
-                currentConfig.studentPasswords[form][examNo] = '000';
-            }
-        }
-        await handleSaveConfig();
-        await displayPasswordTable(form);
-        document.getElementById('passwordGenStatus').textContent = 'All passwords reset to 000 for ' + data.length + ' students.';
-        document.getElementById('passwordGenStatus').style.color = '#e74c3c';
-    } catch (e) {
-        console.error('Password reset error:', e);
-        alert('Failed to reset passwords: ' + safeMsg(e));
-    } finally {
-        hideLoading();
-    }
 }
 
 async function handleSaveConfig() {
@@ -5999,28 +5910,11 @@ function _matchExamNumber(transcript, form, subject) {
         _voiceMode = 'score';
         var scoreRecognition = _getSpeechRecognition();
         if (scoreRecognition) {
-            scoreRecognition.maxAlternatives = 5;
             _voiceRecognition = scoreRecognition;
             scoreRecognition.onresult = function(event) {
-                // SURGICAL FIX: Try all alternatives and pick the one that gives a valid score
-                var bestTranscript = '';
-                var bestScore = null;
-                for (var a = 0; a < event.results[0].length; a++) {
-                    var t = event.results[0][a].transcript.trim();
-                    var s = _extractScoreFromTranscript(t);
-                    if (s !== null) {
-                        bestScore = s;
-                        bestTranscript = t;
-                        break;
-                    }
-                    if (!bestTranscript) bestTranscript = t;
-                }
-                _setVoiceHeard(bestTranscript);
-                if (bestScore !== null) {
-                    _applyVoiceScore(bestTranscript);
-                } else {
-                    _setVoiceStatus('Could not understand score from "' + bestTranscript + '". Try again.', '#e74c3c');
-                }
+                var transcript = event.results[0][0].transcript.trim();
+                _setVoiceHeard(transcript);
+                _applyVoiceScore(transcript);
             };
             scoreRecognition.onerror = function(event) {
                 console.warn('Score speech error:', event.error);
@@ -6044,9 +5938,11 @@ function startVoiceScoreEntry() {
 }
 
 function _applyVoiceScore(transcript) {
-    var score = _extractScoreFromTranscript(transcript);
+    // Extract numeric score from transcript
+    var scoreStr = transcript.replace(/[^0-9]/g, '');
+    var score = parseInt(scoreStr, 10);
 
-    if (score === null) {
+    if (isNaN(score) || scoreStr === '') {
         _setVoiceStatus('Could not understand score from "' + transcript + '". Try again.', '#e74c3c');
         return;
     }
@@ -6079,64 +5975,6 @@ function _applyVoiceScore(transcript) {
         _highlightRow(null);
         startVoiceExamNumber(true); // silent=true so it doesn't show alerts
     }, 500);
-}
-
-// --- SURGICAL FIX: Extract score from speech transcript (handles digits + number words) ---
-function _extractScoreFromTranscript(transcript) {
-    var lower = transcript.toLowerCase().trim();
-
-    // Try direct digit extraction first: "78", "seven eight"
-    var digitStr = lower.replace(/[^0-9]/g, '');
-    if (digitStr.length > 0) {
-        var num = parseInt(digitStr, 10);
-        if (num >= 0 && num <= 100) return num;
-    }
-
-    // Try word-to-number conversion
-    var wordNum = _wordsToNumber(lower);
-    if (wordNum !== null && wordNum >= 0 && wordNum <= 100) return wordNum;
-
-    return null;
-}
-
-// --- SURGICAL FIX: Convert spoken number words to integer ---
-function _wordsToNumber(text) {
-    var ones = { 'zero':0,'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':11,'twelve':12,'thirteen':13,'fourteen':14,'fifteen':15,'sixteen':16,'seventeen':17,'eighteen':18,'nineteen':19 };
-    var tens = { 'twenty':20,'thirty':30,'forty':40,'fifty':50,'sixty':60,'seventy':70,'eighty':80,'ninety':90,'ninety':90 };
-
-    // Remove common noise words
-    text = text.replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim();
-
-    // Try direct match on compound words like "seventy-three" or "seventy three"
-    text = text.replace(/-/g, ' ');
-
-    var words = text.split(' ');
-    var total = 0;
-    var current = 0;
-
-    for (var i = 0; i < words.length; i++) {
-        var w = words[i];
-        if (ones[w] !== undefined) {
-            current += ones[w];
-        } else if (tens[w] !== undefined) {
-            current += tens[w];
-        } else if (w === 'hundred' && current > 0) {
-            current *= 100;
-        } else if (w === 'and') {
-            continue;
-        }
-    }
-    total = current;
-
-    // Also try parsing hyphenated compound directly: "seventy-three"
-    for (var i = 0; i < words.length; i++) {
-        if (tens[words[i]] !== undefined && i + 1 < words.length && ones[words[i+1]] !== undefined) {
-            var val = tens[words[i]] + ones[words[i+1]];
-            if (val >= 0 && val <= 100) return val;
-        }
-    }
-
-    return (total > 0 && total <= 100) ? total : null;
 }
 
 // --- SNE COLUMN VISIBILITY FUNCTIONS ---
