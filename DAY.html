@@ -5665,43 +5665,52 @@ var _voiceCurrentIndex = null;  // Index into currentClassData
 var _voiceRecognition = null;   // Active SpeechRecognition instance
 var _voiceMode = 'exam';        // 'exam' or 'score'
 var _voiceCallActive = false;   // Whether the Call Exam Number button has been activated (remains true until done)
+var _sharedAudioCtx = null;    // Shared AudioContext to prevent double-sound glitches
 
-// --- SURGICAL FIX: Sound 1 — single beep to signal "Call Exam Number" ---
-function _playSound1_CallExamNumber() {
-    try {
-        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        var osc = audioCtx.createOscillator();
-        var gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(520, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.7, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(audioCtx.currentTime);
-        osc.stop(audioCtx.currentTime + 0.35);
-    } catch (e) {
-        console.warn('Could not play sound 1:', e);
+function _getAudioCtx() {
+    if (!_sharedAudioCtx) {
+        _sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
+    if (_sharedAudioCtx.state === 'suspended') {
+        _sharedAudioCtx.resume();
+    }
+    return _sharedAudioCtx;
 }
 
-// --- SURGICAL FIX: Sound 2 — single bright dong to signal "Call Score" ---
+// --- Sound 1: single beep — call exam number ---
+function _playSound1_CallExamNumber() {
+    try {
+        var ctx = _getAudioCtx();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 520;
+        gain.gain.setValueAtTime(0.5, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.25);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.35);
+    } catch (e) {}
+}
+
+// --- Sound 2: single dong — call score ---
 function _playSound2_CallScore() {
     try {
-        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        var osc = audioCtx.createOscillator();
-        var gain = audioCtx.createGain();
+        var ctx = _getAudioCtx();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(1047, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
+        osc.frequency.value = 1047;
+        gain.gain.setValueAtTime(0.5, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.25);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
         osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(audioCtx.currentTime);
-        osc.stop(audioCtx.currentTime + 0.45);
-    } catch (e) {
-        console.warn('Could not play sound 2:', e);
-    }
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+    } catch (e) {}
 }
 
 
