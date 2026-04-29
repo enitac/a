@@ -4,14 +4,6 @@
   <meta charset="UTF-8" />
   <title>Secondary Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- PWA Installability Meta Tags -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#1a2a6c">
-  <meta name="application-name" content="Magawa Portal">
-  <meta name="apple-mobile-web-app-title" content="Magawa Portal">
-  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/secondary/a/main/logo.png">
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -40,87 +32,6 @@ window.alert = function(msg) {
         // Last resort fallback
     }
 };
-
-// ============================================================
-// PWA INSTALL / APK DOWNLOAD SYSTEM
-// Captures the native install prompt and provides fallback.
-// ============================================================
-let _deferredInstallPrompt = null;
-
-window.addEventListener('beforeinstallprompt', function(e) {
-    e.preventDefault();
-    _deferredInstallPrompt = e;
-    // Show the install button if it exists
-    var installBtn = document.getElementById('installAppBtn');
-    if (installBtn) {
-        installBtn.style.display = 'block';
-        installBtn.textContent = 'Download App (Install APK)';
-    }
-});
-
-function installApp() {
-    if (_deferredInstallPrompt) {
-        _deferredInstallPrompt.prompt();
-        _deferredInstallPrompt.userChoice.then(function(choiceResult) {
-            if (choiceResult.outcome === 'accepted') {
-                console.log('App installed successfully');
-            }
-            _deferredInstallPrompt = null;
-            var installBtn = document.getElementById('installAppBtn');
-            if (installBtn) installBtn.style.display = 'none';
-        });
-    } else {
-        // Fallback: show manual install instructions
-        var msg = 'To install this app on your Android device:\n\n' +
-            '1. Tap the menu button (3 dots) in your browser\n' +
-            '2. Tap "Add to Home Screen" or "Install App"\n' +
-            '3. Tap "Install" or "Add"\n\n' +
-            'This will create an app icon on your home screen, just like a downloaded APK.';
-        if (/android/i.test(navigator.userAgent)) {
-            alert(msg);
-        } else {
-            alert('This install feature works best on Android devices using Chrome. On this device, you can bookmark this page or use your browser\'s "Add to Home Screen" option.');
-        }
-    }
-}
-
-// Dynamically inject a web app manifest for PWA installability
-(function() {
-    try {
-        var manifest = {
-            name: "Magawa Secondary Portal",
-            short_name: "Magawa Portal",
-            description: "Magawa Secondary School Exam Portal",
-            start_url: window.location.href.split('?')[0],
-            display: "standalone",
-            background_color: "#1e3a5f",
-            theme_color: "#1a2a6c",
-            orientation: "portrait-primary",
-            icons: [
-                {
-                    src: "https://raw.githubusercontent.com/enitac/a/main/logo.png",
-                    sizes: "192x192",
-                    type: "image/png",
-                    purpose: "any maskable"
-                },
-                {
-                    src: "https://raw.githubusercontent.com/enitac/a/main/logo.png",
-                    sizes: "512x512",
-                    type: "image/png",
-                    purpose: "any maskable"
-                }
-            ]
-        };
-        var blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-        var manifestURL = URL.createObjectURL(blob);
-        var link = document.createElement('link');
-        link.rel = 'manifest';
-        link.href = manifestURL;
-        document.head.appendChild(link);
-    } catch(e) {
-        console.warn('Manifest injection failed:', e);
-    }
-})();
 
 // ============================================================
 // AES-256-GCM TOKEN ENCRYPTION SYSTEM
@@ -1609,8 +1520,8 @@ function saveSelectedSubjectsToRepo() {
 </div>
 
 <div id="initialPage" class="page">
-    <img src="https://raw.githubusercontent.com/enitac/a/main/logo.png" alt="Secondary School Logo" class="logo">
-    <h1><p style="font-size:28px;">SECONDARY SCHOOL</p></h1>
+    <img src="https://raw.githubusercontent.com/magawass/m/main/logo.png" alt="Magawass Secondary School Logo" class="logo">
+    <h1><p style="font-size:28px;">MAGAWA SECONDARY SCHOOL</p></h1>
     <h2>EXAM PORTAL</h2>
     <label for="selectedForm">Select Form / Sankhani Kalasi</label>
     <select id="selectedForm">
@@ -1633,8 +1544,6 @@ function saveSelectedSubjectsToRepo() {
     <button onclick="openAdminLogin()">ADMIN</button>
     <p style="font-size:11px; margin-top: 15px; color: #7f8c8d;">Designed by CHIKUMBUTSO LUBAINI-0 994 039 325. All rights reserved.</p>
 
-    <button id="installAppBtn" onclick="installApp()" style="background:#27ae60; margin-top:10px;">Download App (Install APK)</button>
-
     <!-- Front Page Popup (only visible inside #initialPage) -->
     <div id="frontPagePopup" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:99999; justify-content:center; align-items:center;">
         <div style="background:#fff; border-radius:12px; padding:30px 25px; max-width:340px; width:90%; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.25);">
@@ -1648,9 +1557,9 @@ function saveSelectedSubjectsToRepo() {
     <button class="back-btn" onclick="handleBriefBack()" style="position: absolute; top: 10px; left: 10px; width: auto; padding: 5px 10px; max-width: none !important; margin: 0;">Back</button>
 
     <header id="briefReportHeader" style="width: 100%;">
-        <img src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt="School Logo">
+        <img src="https://raw.githubusercontent.com/magawass/m/main/logo.png" class="logo" alt="School Logo">
         <div id="briefReportHeaderRight">
-            <h3>SECONDARY SCHOOL</h3>
+            <h3>MAGAWA SECONDARY SCHOOL</h3>
             Private Bag 17,<br>
             MAGAWA,<br>
             MCHINJI.
@@ -1699,11 +1608,11 @@ function saveSelectedSubjectsToRepo() {
 
     <header id="reportHeader" style="width: 100%;">
         <img 
-src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt="School Logo">
+src="https://raw.githubusercontent.com/magawass/m/main/logo.png" class="logo" alt="School Logo">
         <div id="reportHeaderCenter">
             <div style="font-family: 'Times New Roman', Times, serif;">
  <div style="text-align: center;">
-<h1><p style="font-size:25px;">SECONDARY SCHOOL</p></h1>
+<h1><p style="font-size:25px;">MAGAWA SECONDARY SCHOOL</p></h1>
  <div style="text-align: center;">
 
                <p style="margin:5px 0; font-size: 14pt;"><strong>Private  Bag  17,<br>MAGAWA, MCHINJI.</strong><br>
@@ -2260,7 +2169,7 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
 </div>
 
 <div id="gradesPage" class="page">
-    <h2 id="gradeSheetHeader">SECONDARY SCHOOL - Grade Sheet - <span id="gradeSheetForm"></span> - Term <span id="gradeSheetTerm"></span></h2>
+    <h2 id="gradeSheetHeader">MAGAWA SECONDARY SCHOOL - Grade Sheet - <span id="gradeSheetForm"></span> - Term <span id="gradeSheetTerm"></span></h2>
 <input type="text" id="gradeSearchInput" placeholder="Search student..." onkeyup="filterGradeSheet()" style="max-width:300px;">
 
     <button onclick="openSheetsPage()" style="position: absolute; top: 10px; left: 10px; width: auto; padding: 5px 10px; max-width: none !important; margin: 0;">Back</button>
@@ -2300,7 +2209,7 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
 </div>
 
 <div id="analysisPage" class="page">
-    <h2 id="analysisTitle">SECONDARY SCHOOL - Form 2 Class Analysis Report</h2>
+    <h2 id="analysisTitle">MAGAWA SECONDARY SCHOOL - Form 2 Class Analysis Report</h2>
     <button onclick="openAnalysisSelector()" style="position: absolute; top: 10px; left: 10px; width: auto; padding: 5px 10px; max-width: none !important; margin: 0;">Back</button>
     <button onclick="printSheet('analysisPage')" class="small-btn" style="float: right; margin-top: 10px; max-width: 150px;">Print Analysis (Landscape)</button>
     <div id="analysisTableWrapper" class="table-wrapper"> </div>
