@@ -5666,34 +5666,65 @@ var _voiceRecognition = null;   // Active SpeechRecognition instance
 var _voiceMode = 'exam';        // 'exam' or 'score'
 var _voiceCallActive = false;   // Whether the Call Exam Number button has been activated (remains true until done)
 
-// --- SURGICAL FIX: Play a "dong" bell sound using Web Audio API ---
-function _playDongSound() {
+// --- SURGICAL FIX: Sound 1 — low beep to signal "Call Exam Number" ---
+function _playSound1_CallExamNumber() {
     try {
         var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        // First tone (higher "ding")
-        var osc1 = audioCtx.createOscillator();
-        var gain1 = audioCtx.createGain();
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(830, audioCtx.currentTime);
-        gain1.gain.setValueAtTime(0.6, audioCtx.currentTime);
-        gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
-        osc1.connect(gain1);
-        gain1.connect(audioCtx.destination);
-        osc1.start(audioCtx.currentTime);
-        osc1.stop(audioCtx.currentTime + 0.8);
-        // Second tone (lower harmonic for depth)
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.7, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.35);
+        // Second beep (double-beep pattern)
         var osc2 = audioCtx.createOscillator();
         var gain2 = audioCtx.createGain();
         osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(1200, audioCtx.currentTime + 0.05);
-        gain2.gain.setValueAtTime(0.4, audioCtx.currentTime + 0.05);
-        gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.9);
+        osc2.frequency.setValueAtTime(520, audioCtx.currentTime + 0.18);
+        gain2.gain.setValueAtTime(0.001, audioCtx.currentTime);
+        gain2.gain.setValueAtTime(0.7, audioCtx.currentTime + 0.18);
+        gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.53);
         osc2.connect(gain2);
         gain2.connect(audioCtx.destination);
-        osc2.start(audioCtx.currentTime + 0.05);
-        osc2.stop(audioCtx.currentTime + 0.9);
+        osc2.start(audioCtx.currentTime + 0.18);
+        osc2.stop(audioCtx.currentTime + 0.53);
     } catch (e) {
-        console.warn('Could not play dong sound:', e);
+        console.warn('Could not play sound 1:', e);
+    }
+}
+
+// --- SURGICAL FIX: Sound 2 — high ding/dong to signal "Call Score" ---
+function _playSound2_CallScore() {
+    try {
+        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // First tone (bright ding)
+        var osc1 = audioCtx.createOscillator();
+        var gain1 = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(1047, audioCtx.currentTime);
+        gain1.gain.setValueAtTime(0.7, audioCtx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(audioCtx.currentTime);
+        osc1.stop(audioCtx.currentTime + 0.5);
+        // Second tone (higher harmonic)
+        var osc2 = audioCtx.createOscillator();
+        var gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1319, audioCtx.currentTime + 0.08);
+        gain2.gain.setValueAtTime(0.5, audioCtx.currentTime + 0.08);
+        gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.7);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(audioCtx.currentTime + 0.08);
+        osc2.stop(audioCtx.currentTime + 0.7);
+    } catch (e) {
+        console.warn('Could not play sound 2:', e);
     }
 }
 
@@ -5813,6 +5844,8 @@ function startVoiceExamNumber(silent) {
     document.getElementById('voiceExamBtn').style.background = '#6c3483';
     // SURGICAL FIX: Show Cancel label on the call button so user knows clicking it cancels
     document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Cancel Calling';
+    // SURGICAL FIX: Play Sound 1 to signal "Call Exam Number"
+    _playSound1_CallExamNumber();
 
     recognition.onresult = function(event) {
         var transcript = event.results[0][0].transcript.trim().toUpperCase();
@@ -5895,8 +5928,8 @@ function _matchExamNumber(transcript, form, subject) {
 
     _setVoiceStatus('Student found! ' + student['Exam Number'] + ' — ' + (student["STUDENT'S NAME"] || 'Unknown'), '#2ecc71');
 
-    // SURGICAL FIX: Play the "dong" sound first
-    _playDongSound();
+    // SURGICAL FIX: Play Sound 2 to signal "Call Score"
+    _playSound2_CallScore();
 
     // Show the orange Cancel button
     document.getElementById('voiceScoreBtn').style.display = 'flex';
@@ -5908,8 +5941,7 @@ function _matchExamNumber(transcript, form, subject) {
         scoreInput.select();
     }
 
-    // SURGICAL FIX: After the dong sound, speak "score" then auto-start listening for score
-    // Wait for dong to finish (~1 second), then speak "score", then start listening
+    // SURGICAL FIX: After Sound 2, speak "score" then auto-start listening — fast cycle
     setTimeout(function() {
         _speakText('Score', function() {
             _setVoiceStatus('Listening for score... Speak the number now.', '#e67e22');
@@ -5936,7 +5968,7 @@ function _matchExamNumber(transcript, form, subject) {
                 scoreRecognition.start();
             }
         });
-    }, 1200);
+    }, 500);
 }
 
 function startVoiceScoreEntry() {
@@ -5976,12 +6008,12 @@ function _applyVoiceScore(transcript) {
     document.getElementById('voiceScoreBtn').style.display = 'none';
     document.getElementById('voiceCurrentStudent').style.display = 'none';
 
-    // SURGICAL FIX: Clear highlight and auto-loop back to listening for next exam number
+    // SURGICAL FIX: Fast restart — quickly loop back to listening for next exam number
     // The call button stays active (_voiceCallActive remains true) since calling is not done
     setTimeout(function() {
         _highlightRow(null);
         startVoiceExamNumber(true); // silent=true so it doesn't show alerts
-    }, 1500);
+    }, 500);
 }
 
 // --- SNE COLUMN VISIBILITY FUNCTIONS ---
