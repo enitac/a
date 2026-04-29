@@ -5704,28 +5704,7 @@ function _playSound2_CallScore() {
     }
 }
 
-// --- SURGICAL FIX: Speak text aloud using SpeechSynthesis ---
-function _speakText(text, callback) {
-    try {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // Stop any ongoing speech
-            var utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-            utterance.volume = 1.0;
-            if (callback) {
-                utterance.onend = callback;
-                utterance.onerror = callback;
-            }
-            window.speechSynthesis.speak(utterance);
-        } else if (callback) {
-            callback();
-        }
-    } catch (e) {
-        console.warn('Could not speak text:', e);
-        if (callback) callback();
-    }
-}
+
 
 // --- SURGICAL FIX: Cancel voice entry and reset buttons ---
 function _cancelVoiceEntry() {
@@ -5741,8 +5720,7 @@ function _cancelVoiceEntry() {
     document.getElementById('voiceCurrentStudent').style.display = 'none';
     _setVoiceStatus('Voice entry cancelled. Click "Call Exam Number" to start again.', '#555');
     _setVoiceHeard('');
-    // Cancel any ongoing speech synthesis
-    try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch(e) {}
+
 }
 
 function _getSpeechRecognition() {
@@ -5820,8 +5798,8 @@ function startVoiceExamNumber(silent) {
     document.getElementById('voiceExamBtn').style.background = '#6c3483';
     // SURGICAL FIX: Show Cancel label on the call button so user knows clicking it cancels
     document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Cancel Calling';
-    // SURGICAL FIX: Play Sound 1 to signal "Call Exam Number"
-    _playSound1_CallExamNumber();
+    // SURGICAL FIX: Play Sound 1 (single beep) only on first click, not on auto-restart
+    if (!silent) _playSound1_CallExamNumber();
 
     recognition.onresult = function(event) {
         var transcript = event.results[0][0].transcript.trim().toUpperCase();
