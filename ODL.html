@@ -2898,14 +2898,11 @@ function printSheet(pageId) {
             width: 45px !important;
             max-width: 45px !important;
         }
-        #analysisPage #analysisSummaryTable,
-        #analysisPage #analysisSNETable {
-            width: 48% !important;
+        #analysisPage #analysisSummaryTable {
+            width: 100% !important;
         }
         #analysisPage #analysisSummaryTable th,
-        #analysisPage #analysisSummaryTable td,
-        #analysisPage #analysisSNETable th,
-        #analysisPage #analysisSNETable td {
+        #analysisPage #analysisSummaryTable td {
             padding: 3px 4px !important;
             font-size: 9pt !important;
             white-space: nowrap !important;
@@ -5524,8 +5521,8 @@ async function displayAnalysisSheet(form) {
     const totalFailPercent = totalEntered > 0 ? ((totalFail / totalEntered) * 100).toFixed(1) : '0.0';
 
     html += `
-    <div style="display:flex;gap:10px;margin-top:15px;width:100%;">
-    <table id="analysisSummaryTable" style="width:50%;border-collapse:collapse;border:1px solid black;">
+    <div style="display:block;margin-top:15px;width:100%;">
+    <table id="analysisSummaryTable" style="width:100%;border-collapse:collapse;border:1px solid black;">
         <thead>
             <tr style="background:#ecf0f1;">
                 <th style="border:1px solid black;padding:6px;width:15%;"></th>
@@ -5560,44 +5557,6 @@ async function displayAnalysisSheet(form) {
                 <td style="border:1px solid black;padding:6px;text-align:center;font-weight:bold;">${totalPassPercent}%</td>
                 <td style="border:1px solid black;padding:6px;text-align:center;font-weight:bold;">${totalFail}</td>
                 <td style="border:1px solid black;padding:6px;text-align:center;font-weight:bold;">${totalFailPercent}%</td>
-            </tr>
-        </tbody>
-    </table>
-    <table id="analysisSNETable" style="width:50%;border-collapse:collapse;border:1px solid black;">
-        <thead>
-            <tr style="background:#ecf0f1;">
-                <th style="border:1px solid black;padding:6px;width:15%;"></th>
-                <th style="border:1px solid black;padding:6px;text-align:center;">Entered</th>
-                <th style="border:1px solid black;padding:6px;text-align:center;">Pass</th>
-                <th style="border:1px solid black;padding:6px;text-align:center;">Pass%</th>
-                <th style="border:1px solid black;padding:6px;text-align:center;">Fail</th>
-                <th style="border:1px solid black;padding:6px;text-align:center;">Fail%</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td style="border:1px solid black;padding:6px;font-weight:bold;">BOYS(M)</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;">${sneBoysStats.entered}</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;">${sneBoysStats.pass}</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;">${sneBoysStats.entered > 0 ? ((sneBoysStats.pass / sneBoysStats.entered) * 100).toFixed(1) : '0.0'}%</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;">${sneBoysStats.fail}</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;">${sneBoysStats.entered > 0 ? ((sneBoysStats.fail / sneBoysStats.entered) * 100).toFixed(1) : '0.0'}%</td>
-            </tr>
-            <tr>
-                <td style="border:1px solid black;padding:6px;font-weight:bold;">GIRLS(F)</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;">${sneGirlsStats.entered}</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;">${sneGirlsStats.pass}</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;">${sneGirlsStats.entered > 0 ? ((sneGirlsStats.pass / sneGirlsStats.entered) * 100).toFixed(1) : '0.0'}%</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;">${sneGirlsStats.fail}</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;">${sneGirlsStats.entered > 0 ? ((sneGirlsStats.fail / sneGirlsStats.entered) * 100).toFixed(1) : '0.0'}%</td>
-            </tr>
-            <tr style="background:#f0f0f0;">
-                <td style="border:1px solid black;padding:6px;font-weight:bold;">SNE TOTAL</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;font-weight:bold;">${sneBoysStats.entered + sneGirlsStats.entered}</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;font-weight:bold;">${sneBoysStats.pass + sneGirlsStats.pass}</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;font-weight:bold;">${(sneBoysStats.entered + sneGirlsStats.entered) > 0 ? (((sneBoysStats.pass + sneGirlsStats.pass) / (sneBoysStats.entered + sneGirlsStats.entered)) * 100).toFixed(1) : '0.0'}%</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;font-weight:bold;">${sneBoysStats.fail + sneGirlsStats.fail}</td>
-                <td style="border:1px solid black;padding:6px;text-align:center;font-weight:bold;">${(sneBoysStats.entered + sneGirlsStats.entered) > 0 ? (((sneBoysStats.fail + sneGirlsStats.fail) / (sneBoysStats.entered + sneGirlsStats.entered)) * 100).toFixed(1) : '0.0'}%</td>
             </tr>
         </tbody>
     </table>
