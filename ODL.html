@@ -5677,6 +5677,7 @@ async function showStudentMarksList() {
                 <input type="text" 
                        id="score_${i}" 
                        value="${val}" 
+                       inputmode="numeric"
                        ${inputDisabled}
                        placeholder=" ">
             </td>
@@ -5816,6 +5817,8 @@ function _cancelVoiceEntry() {
     _voiceScoreRetryCount = 0;
     _showRetryButton(false);
     _highlightRow(null);
+    // SURGICAL FIX: Restore score inputs to editable when voice entry is cancelled
+    _setScoreInputsReadOnly(false);
     document.getElementById('voiceExamBtn').style.background = '#8e44ad';
     document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Call Exam Number';
     document.getElementById('voiceCurrentStudent').style.display = 'none';
@@ -5882,9 +5885,34 @@ function _manualRetryScore() {
     _startScoreListening();
 }
 
+// --- SURGICAL FIX: Make all score inputs readonly during voice entry to prevent mobile keyboard popup ---
+function _setScoreInputsReadOnly(readonly) {
+    var inputs = document.querySelectorAll('#dataEntryTableBody input[id^="score_"]');
+    for (var i = 0; i < inputs.length; i++) {
+        if (readonly) {
+            inputs[i].setAttribute('readonly', '');
+        } else {
+            // Only remove readonly if the subject is not locked
+            var idx = inputs[i].id.replace('score_', '');
+            var form = document.getElementById('dataClassSelect').value;
+            var subject = document.getElementById('dataSubjectSelect').value;
+            var isLocked = currentConfig && currentConfig.locks && currentConfig.locks[form] && currentConfig.locks[form][subject];
+            if (!isLocked) {
+                inputs[i].removeAttribute('readonly');
+            }
+        }
+    }
+}
+
 // --- Helper: start listening for score with auto-retry ---
 function _startScoreListening() {
     _voiceMode = 'score';
+    // SURGICAL FIX: Blur any focused input and make all score inputs readonly to prevent keyboard popup
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+        document.activeElement.blur();
+    }
+    _setScoreInputsReadOnly(true);
+
     var scoreRecognition = _getSpeechRecognition();
     if (!scoreRecognition) return;
     _voiceRecognition = scoreRecognition;
@@ -6092,10 +6120,12 @@ function _applyVoiceScore(transcript) {
     var form = document.getElementById('dataClassSelect').value;
     var subject = document.getElementById('dataSubjectSelect').value;
 
-    // Set the score in the input
+    // Set the score in the input (SURGICAL FIX: temporarily allow write on readonly input for voice, without triggering focus)
     var scoreInput = document.getElementById('score_' + _voiceCurrentIndex);
-    if (scoreInput && !scoreInput.readOnly) {
+    if (scoreInput) {
+        scoreInput.removeAttribute('readonly');
         scoreInput.value = score;
+        scoreInput.setAttribute('readonly', '');  // Re-lock immediately to prevent keyboard
         updateStudentScore(form, _voiceCurrentIndex, subject, String(score));
     }
 
