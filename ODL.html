@@ -5705,7 +5705,7 @@ async function showStudentMarksList() {
     applySNEColumnToTable();
 
     // Auto-activate voice mic now that students are loaded
-    setTimeout(function() { startVoiceExamNumber(true); }, 300);
+    setTimeout(function() { startVoiceExamNumber(true); }, 100);
 }
 
 function updateStudentScore(form, index, subject, value) {
@@ -5794,13 +5794,13 @@ function _playSound2_CallScore() {
         var gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.value = 1047;
-        gain.gain.setValueAtTime(0.5, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.15);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.08);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.12);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.25);
+        osc.stop(ctx.currentTime + 0.12);
     } catch (e) {}
 }
 
@@ -5858,7 +5858,7 @@ function _highlightRow(index) {
     if (index === null || index < 0 || !rows[index]) return;
     // Highlight new row and scroll into view
     rows[index].style.background = '#d4edda';
-    rows[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    rows[index].scrollIntoView({ behavior: 'instant', block: 'center' });
 }
 
 function _stopRecognition() {
@@ -5917,7 +5917,7 @@ function _startScoreListening() {
         // (all retries are handled here to avoid double-retry from onerror + onend)
         if (_voiceMode === 'score' && _voiceCallActive && _voiceScoreRetryCount < _voiceScoreMaxRetries) {
             _voiceScoreRetryCount++;
-            setTimeout(function() { _startScoreListening(); }, 30);
+            setTimeout(function() { _startScoreListening(); }, 10);
         } else if (_voiceMode === 'score' && _voiceCallActive && _voiceScoreRetryCount >= _voiceScoreMaxRetries) {
             _setVoiceStatus('Score not heard after ' + _voiceScoreMaxRetries + ' attempts. Click "Retry Score" or call next exam number.', '#e74c3c');
             _showRetryButton(true);
@@ -6073,7 +6073,7 @@ function _applyVoiceScore(transcript) {
         _voiceScoreRetryCount++;
         if (_voiceScoreRetryCount <= _voiceScoreMaxRetries) {
             _setVoiceStatus('Could not understand "' + transcript + '". Auto-retrying (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')...', '#e67e22');
-            setTimeout(function() { _startScoreListening(); }, 30);
+            setTimeout(function() { _startScoreListening(); }, 10);
         } else {
             _setVoiceStatus('Could not understand score after ' + _voiceScoreMaxRetries + ' retries. Click "Retry Score" to try again.', '#e74c3c');
             _showRetryButton(true);
@@ -6085,7 +6085,7 @@ function _applyVoiceScore(transcript) {
         _voiceScoreRetryCount++;
         if (_voiceScoreRetryCount <= _voiceScoreMaxRetries) {
             _setVoiceStatus('Invalid score (' + score + '). Auto-retrying (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')...', '#e67e22');
-            setTimeout(function() { _startScoreListening(); }, 30);
+            setTimeout(function() { _startScoreListening(); }, 10);
         } else {
             _setVoiceStatus('Invalid score after ' + _voiceScoreMaxRetries + ' retries. Click "Retry Score" to try again.', '#e74c3c');
             _showRetryButton(true);
