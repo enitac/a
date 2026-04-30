@@ -619,7 +619,7 @@ function saveSelectedSubjectsToRepo() {
         margin: 20px auto;
         text-align: center;
         height: auto;
-        overflow-x: hidden; overflow-y: auto; /* Horizontal clip, vertical scroll */
+        overflow-x: hidden; /* Prevent container level scroll */
     }
 
     #initialPage { display: block; text-align: center; }
@@ -886,13 +886,9 @@ function saveSelectedSubjectsToRepo() {
         .teacher-input-group label { flex-basis: auto; text-align: center !important; }
         .teacher-input-group input[type="text"] { flex-basis: auto; text-align: center !important; }
 
-        /* Surgical Fix: Admin & management pages mobile vertical scroll */
-        #sheetsPage, #adminHomePage,
-        #dataEntryPage, #fileUploadsPage,
-        #teacherPage, #passwordPage, #hideSubjectPage {
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            max-height: none !important;
+        /* Surgical Fix: Sheets Overview & Admin Home mobile scroll */
+        #sheetsPage, #adminHomePage {
+            overflow: visible !important;
         }
 
         /* Surgical Fix: Sheets Overview & Initial Page Mobile Layout Alignment */
@@ -5669,55 +5665,91 @@ var _voiceCurrentIndex = null;  // Index into currentClassData
 var _voiceRecognition = null;   // Active SpeechRecognition instance
 var _voiceMode = 'exam';        // 'exam' or 'score'
 var _voiceCallActive = false;   // Whether the Call Exam Number button has been activated (remains true until done)
-var _sharedAudioCtx = null;    // Shared AudioContext to prevent double-sound glitches
 
-function _getAudioCtx() {
-    if (!_sharedAudioCtx) {
-        _sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (_sharedAudioCtx.state === 'suspended') {
-        _sharedAudioCtx.resume();
-    }
-    return _sharedAudioCtx;
-}
-
-// --- Sound 1: single beep — call exam number ---
+// --- SURGICAL FIX: Sound 1 — low beep to signal "Call Exam Number" ---
 function _playSound1_CallExamNumber() {
     try {
-        var ctx = _getAudioCtx();
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
+        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.value = 520;
-        gain.gain.setValueAtTime(0.5, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.25);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.35);
+        osc.frequency.setValueAtTime(520, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.7, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
         osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.35);
-    } catch (e) {}
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.35);
+        // Second beep (double-beep pattern)
+        var osc2 = audioCtx.createOscillator();
+        var gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(520, audioCtx.currentTime + 0.18);
+        gain2.gain.setValueAtTime(0.001, audioCtx.currentTime);
+        gain2.gain.setValueAtTime(0.7, audioCtx.currentTime + 0.18);
+        gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.53);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(audioCtx.currentTime + 0.18);
+        osc2.stop(audioCtx.currentTime + 0.53);
+    } catch (e) {
+        console.warn('Could not play sound 1:', e);
+    }
 }
 
-// --- Sound 2: single dong — call score ---
+// --- SURGICAL FIX: Sound 2 — high ding/dong to signal "Call Score" ---
 function _playSound2_CallScore() {
     try {
-        var ctx = _getAudioCtx();
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = 1047;
-        gain.gain.setValueAtTime(0.5, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.25);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.4);
-    } catch (e) {}
+        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // First tone (bright ding)
+        var osc1 = audioCtx.createOscillator();
+        var gain1 = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(1047, audioCtx.currentTime);
+        gain1.gain.setValueAtTime(0.7, audioCtx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(audioCtx.currentTime);
+        osc1.stop(audioCtx.currentTime + 0.5);
+        // Second tone (higher harmonic)
+        var osc2 = audioCtx.createOscillator();
+        var gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1319, audioCtx.currentTime + 0.08);
+        gain2.gain.setValueAtTime(0.5, audioCtx.currentTime + 0.08);
+        gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.7);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(audioCtx.currentTime + 0.08);
+        osc2.stop(audioCtx.currentTime + 0.7);
+    } catch (e) {
+        console.warn('Could not play sound 2:', e);
+    }
 }
 
-
+// --- SURGICAL FIX: Speak text aloud using SpeechSynthesis ---
+function _speakText(text, callback) {
+    try {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // Stop any ongoing speech
+            var utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+            if (callback) {
+                utterance.onend = callback;
+                utterance.onerror = callback;
+            }
+            window.speechSynthesis.speak(utterance);
+        } else if (callback) {
+            callback();
+        }
+    } catch (e) {
+        console.warn('Could not speak text:', e);
+        if (callback) callback();
+    }
+}
 
 // --- SURGICAL FIX: Cancel voice entry and reset buttons ---
 function _cancelVoiceEntry() {
@@ -5733,7 +5765,8 @@ function _cancelVoiceEntry() {
     document.getElementById('voiceCurrentStudent').style.display = 'none';
     _setVoiceStatus('Voice entry cancelled. Click "Call Exam Number" to start again.', '#555');
     _setVoiceHeard('');
-
+    // Cancel any ongoing speech synthesis
+    try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch(e) {}
 }
 
 function _getSpeechRecognition() {
@@ -5811,8 +5844,8 @@ function startVoiceExamNumber(silent) {
     document.getElementById('voiceExamBtn').style.background = '#6c3483';
     // SURGICAL FIX: Show Cancel label on the call button so user knows clicking it cancels
     document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Cancel Calling';
-    // SURGICAL FIX: Play Sound 1 (single beep) only on first click, not on auto-restart
-    if (!silent) _playSound1_CallExamNumber();
+    // SURGICAL FIX: Play Sound 1 to signal "Call Exam Number"
+    _playSound1_CallExamNumber();
 
     recognition.onresult = function(event) {
         var transcript = event.results[0][0].transcript.trim().toUpperCase();
