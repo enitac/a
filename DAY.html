@@ -865,7 +865,7 @@ function saveSelectedSubjectsToRepo() {
         70% { box-shadow: 0 0 0 10px rgba(142, 68, 173, 0); }
         100% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0); }
     }
-    #voiceExamBtn[style*="6c3483"], #voiceScoreBtn[style*="d35400"] {
+    #voiceExamBtn[style*="6c3483"] {
         animation: voicePulse 1.2s infinite;
     }
 
@@ -1745,9 +1745,6 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
             <button id="voiceExamBtn" onclick="startVoiceExamNumber()" style="background:#8e44ad;max-width:180px;display:flex;align-items:center;justify-content:center;gap:6px;">
                 <span style="font-size:1.3em;">&#127908;</span> Call Exam Number
             </button>
-            <button id="voiceScoreBtn" onclick="startVoiceScoreEntry()" style="background:#e67e22;max-width:180px;display:none;align-items:center;justify-content:center;gap:6px;">
-                <span style="font-size:1.3em;">&#10060;</span> Cancel
-            </button>
         </div>
         <p id="voiceCurrentStudent" style="font-size:1.15em;color:#1a2a6c;font-weight:700;margin-top:8px;display:none;background:#d4edda;padding:8px 12px;border-radius:8px;border:2px solid #28a745;"></p>
         <p id="voiceHeardText" style="font-size:0.8em;color:#999;font-style:italic;margin-top:4px;"></p>
@@ -1981,6 +1978,10 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
 </select>
 
 <button onclick="generateStudentPasswords()" style="background:#8e44ad;">Generate Passwords</button>
+<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:5px;">
+    <button onclick="printStudentPasswords()" class="small-btn" style="background:#28a745;max-width:180px;margin-top:5px;">Print Passwords</button>
+    <button onclick="resetStudentPasswords()" class="small-btn" style="background:#e74c3c;max-width:180px;margin-top:5px;">Reset All to 000</button>
+</div>
 <p id="passwordGenStatus" style="font-size:11px; color:#2ecc71;"></p>
 <div id="passwordGenTableContainer" style="margin-top:10px;max-height:400px;overflow-y:auto;"></div>
 
@@ -3234,6 +3235,89 @@ async function loadPasswordTable() {
         await initializeConfig(null);
     }
     await displayPasswordTable(form);
+}
+
+// --- SURGICAL FIX: Print student passwords for a class ---
+function printStudentPasswords() {
+    var form = document.getElementById('passwordGenClassSelect').value;
+    if (!form) {
+        alert('Please select a class first.');
+        return;
+    }
+    var container = document.getElementById('passwordGenTableContainer');
+    var table = container ? container.querySelector('table') : null;
+    if (!table) {
+        alert('No password table to print. Generate passwords first.');
+        return;
+    }
+    var formDisplay = form.toUpperCase().replace('FORM', 'Form ');
+    var term = currentConfig ? currentConfig.term : '';
+    var year = currentConfig ? (currentConfig.year || '') : '';
+    var schoolName = 'MAGAWA SECONDARY SCHOOL';
+    var printWin = window.open('', '_blank', 'width=800,height=600');
+    printWin.document.write('<!DOCTYPE html><html><head><title>Student Passwords - ' + formDisplay + '</title>');
+    printWin.document.write('<style>');
+    printWin.document.write('body{font-family:Arial,sans-serif;padding:30px;color:#333;}');
+    printWin.document.write('h1{text-align:center;font-size:18px;margin-bottom:2px;}');
+    printWin.document.write('h2{text-align:center;font-size:14px;color:#555;font-weight:normal;margin-top:0;margin-bottom:15px;}');
+    printWin.document.write('table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}');
+    printWin.document.write('th,td{border:1px solid #333;padding:6px 10px;text-align:center;}');
+    printWin.document.write('th{background:#ecf0f1;font-weight:700;}');
+    printWin.document.write('td:nth-child(2){text-align:left;}');
+    printWin.document.write('td:nth-child(3){font-weight:700;font-size:15px;letter-spacing:3px;color:#1a2a6c;}');
+    printWin.document.write('p.note{font-size:10px;color:#888;margin-top:20px;text-align:center;}');
+    printWin.document.write('@media print{body{padding:15px;}h1{font-size:16px;}}');
+    printWin.document.write('</style></head><body>');
+    printWin.document.write('<h1>' + schoolName + '</h1>');
+    printWin.document.write('<h2>Student Passwords — ' + formDisplay + (term ? ' — Term ' + term : '') + (year ? ' — ' + year : '') + '</h2>');
+    printWin.document.write(table.outerHTML);
+    printWin.document.write('<p class="note">Keep this list secure. Each student must use their own 4-digit password to access results.</p>');
+    printWin.document.write('<div style="text-align:center;margin-top:15px;"><button onclick="window.print()" style="padding:8px 20px;font-size:14px;cursor:pointer;">Print This Page</button></div>');
+    printWin.document.write('</body></html>');
+    printWin.document.close();
+}
+
+// --- SURGICAL FIX: Reset all student passwords in a class to default 000 ---
+async function resetStudentPasswords() {
+    var form = document.getElementById('passwordGenClassSelect').value;
+    if (!form) {
+        alert('Please select a class first.');
+        return;
+    }
+    var token = getDecryptedToken();
+    if (!token) {
+        alert('Authorization Code required. Please enter it in Admin Dashboard.');
+        return;
+    }
+    if (!confirm('Reset ALL passwords for ' + form.toUpperCase().replace('FORM', 'Form ') + ' to default 000?\n\nStudents will use 000 to access their results until new passwords are generated.')) {
+        return;
+    }
+    showLoading();
+    try {
+        var data = await fetchClassData(form);
+        if (!data || data.length === 0) {
+            alert('No students found in ' + form + '. Upload a CSV first.');
+            hideLoading();
+            return;
+        }
+        if (!currentConfig.studentPasswords) currentConfig.studentPasswords = {};
+        currentConfig.studentPasswords[form] = {};
+        for (var i = 0; i < data.length; i++) {
+            var examNo = data[i]['Exam Number'];
+            if (examNo) {
+                currentConfig.studentPasswords[form][examNo] = '000';
+            }
+        }
+        await handleSaveConfig();
+        await displayPasswordTable(form);
+        document.getElementById('passwordGenStatus').textContent = 'All passwords reset to 000 for ' + data.length + ' students.';
+        document.getElementById('passwordGenStatus').style.color = '#e74c3c';
+    } catch (e) {
+        console.error('Password reset error:', e);
+        alert('Failed to reset passwords: ' + safeMsg(e));
+    } finally {
+        hideLoading();
+    }
 }
 
 async function handleSaveConfig() {
@@ -5665,91 +5749,55 @@ var _voiceCurrentIndex = null;  // Index into currentClassData
 var _voiceRecognition = null;   // Active SpeechRecognition instance
 var _voiceMode = 'exam';        // 'exam' or 'score'
 var _voiceCallActive = false;   // Whether the Call Exam Number button has been activated (remains true until done)
+var _sharedAudioCtx = null;    // Shared AudioContext to prevent double-sound glitches
 
-// --- SURGICAL FIX: Sound 1 — low beep to signal "Call Exam Number" ---
+function _getAudioCtx() {
+    if (!_sharedAudioCtx) {
+        _sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (_sharedAudioCtx.state === 'suspended') {
+        _sharedAudioCtx.resume();
+    }
+    return _sharedAudioCtx;
+}
+
+// --- Sound 1: single beep — call exam number ---
 function _playSound1_CallExamNumber() {
     try {
-        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        var osc = audioCtx.createOscillator();
-        var gain = audioCtx.createGain();
+        var ctx = _getAudioCtx();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(520, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.7, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+        osc.frequency.value = 520;
+        gain.gain.setValueAtTime(0.5, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.25);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.35);
         osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(audioCtx.currentTime);
-        osc.stop(audioCtx.currentTime + 0.35);
-        // Second beep (double-beep pattern)
-        var osc2 = audioCtx.createOscillator();
-        var gain2 = audioCtx.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(520, audioCtx.currentTime + 0.18);
-        gain2.gain.setValueAtTime(0.001, audioCtx.currentTime);
-        gain2.gain.setValueAtTime(0.7, audioCtx.currentTime + 0.18);
-        gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.53);
-        osc2.connect(gain2);
-        gain2.connect(audioCtx.destination);
-        osc2.start(audioCtx.currentTime + 0.18);
-        osc2.stop(audioCtx.currentTime + 0.53);
-    } catch (e) {
-        console.warn('Could not play sound 1:', e);
-    }
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.35);
+    } catch (e) {}
 }
 
-// --- SURGICAL FIX: Sound 2 — high ding/dong to signal "Call Score" ---
+// --- Sound 2: single dong — call score ---
 function _playSound2_CallScore() {
     try {
-        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        // First tone (bright ding)
-        var osc1 = audioCtx.createOscillator();
-        var gain1 = audioCtx.createGain();
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(1047, audioCtx.currentTime);
-        gain1.gain.setValueAtTime(0.7, audioCtx.currentTime);
-        gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-        osc1.connect(gain1);
-        gain1.connect(audioCtx.destination);
-        osc1.start(audioCtx.currentTime);
-        osc1.stop(audioCtx.currentTime + 0.5);
-        // Second tone (higher harmonic)
-        var osc2 = audioCtx.createOscillator();
-        var gain2 = audioCtx.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(1319, audioCtx.currentTime + 0.08);
-        gain2.gain.setValueAtTime(0.5, audioCtx.currentTime + 0.08);
-        gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.7);
-        osc2.connect(gain2);
-        gain2.connect(audioCtx.destination);
-        osc2.start(audioCtx.currentTime + 0.08);
-        osc2.stop(audioCtx.currentTime + 0.7);
-    } catch (e) {
-        console.warn('Could not play sound 2:', e);
-    }
+        var ctx = _getAudioCtx();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 1047;
+        gain.gain.setValueAtTime(0.5, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.25);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+    } catch (e) {}
 }
 
-// --- SURGICAL FIX: Speak text aloud using SpeechSynthesis ---
-function _speakText(text, callback) {
-    try {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // Stop any ongoing speech
-            var utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-            utterance.volume = 1.0;
-            if (callback) {
-                utterance.onend = callback;
-                utterance.onerror = callback;
-            }
-            window.speechSynthesis.speak(utterance);
-        } else if (callback) {
-            callback();
-        }
-    } catch (e) {
-        console.warn('Could not speak text:', e);
-        if (callback) callback();
-    }
-}
+
 
 // --- SURGICAL FIX: Cancel voice entry and reset buttons ---
 function _cancelVoiceEntry() {
@@ -5761,12 +5809,10 @@ function _cancelVoiceEntry() {
     _highlightRow(null);
     document.getElementById('voiceExamBtn').style.background = '#8e44ad';
     document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Call Exam Number';
-    document.getElementById('voiceScoreBtn').style.display = 'none';
     document.getElementById('voiceCurrentStudent').style.display = 'none';
     _setVoiceStatus('Voice entry cancelled. Click "Call Exam Number" to start again.', '#555');
     _setVoiceHeard('');
-    // Cancel any ongoing speech synthesis
-    try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch(e) {}
+
 }
 
 function _getSpeechRecognition() {
@@ -5844,8 +5890,8 @@ function startVoiceExamNumber(silent) {
     document.getElementById('voiceExamBtn').style.background = '#6c3483';
     // SURGICAL FIX: Show Cancel label on the call button so user knows clicking it cancels
     document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Cancel Calling';
-    // SURGICAL FIX: Play Sound 1 to signal "Call Exam Number"
-    _playSound1_CallExamNumber();
+    // SURGICAL FIX: Play Sound 1 (single beep) only on first click, not on auto-restart
+    if (!silent) _playSound1_CallExamNumber();
 
     recognition.onresult = function(event) {
         var transcript = event.results[0][0].transcript.trim().toUpperCase();
@@ -5931,9 +5977,6 @@ function _matchExamNumber(transcript, form, subject) {
     // SURGICAL FIX: Play Sound 2 to signal "Call Score"
     _playSound2_CallScore();
 
-    // Show the orange Cancel button
-    document.getElementById('voiceScoreBtn').style.display = 'flex';
-
     // Focus the score input for this student
     var scoreInput = document.getElementById('score_' + matchIndex);
     if (scoreInput && !scoreInput.readOnly) {
@@ -5941,7 +5984,7 @@ function _matchExamNumber(transcript, form, subject) {
         scoreInput.select();
     }
 
-    // SURGICAL FIX: After Sound 2 finishes (~0.7s), auto-start listening for score — two sounds only, no voice
+    // SURGICAL FIX: After Sound 2 finishes, auto-start listening for score quickly
     setTimeout(function() {
         _setVoiceStatus('Listening for score... Speak the number now.', '#e67e22');
         _voiceMode = 'score';
@@ -5966,7 +6009,7 @@ function _matchExamNumber(transcript, form, subject) {
             };
             scoreRecognition.start();
         }
-    }, 400);
+    }, 100);
 }
 
 function startVoiceScoreEntry() {
@@ -6003,7 +6046,6 @@ function _applyVoiceScore(transcript) {
 
     // Auto-advance: prepare for next student
     _voiceCurrentIndex = null;
-    document.getElementById('voiceScoreBtn').style.display = 'none';
     document.getElementById('voiceCurrentStudent').style.display = 'none';
 
     // SURGICAL FIX: Fast restart — quickly loop back to listening for next exam number
@@ -6011,7 +6053,7 @@ function _applyVoiceScore(transcript) {
     setTimeout(function() {
         _highlightRow(null);
         startVoiceExamNumber(true); // silent=true so it doesn't show alerts
-    }, 500);
+    }, 100);
 }
 
 // --- SNE COLUMN VISIBILITY FUNCTIONS ---
