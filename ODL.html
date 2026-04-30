@@ -5824,6 +5824,46 @@ function _cancelVoiceEntry() {
 
 }
 
+function _wordsToNumber(text) {
+    // Convert spoken number words into digit strings for accurate matching
+    var wordMap = {
+        'ZERO':'0','ONE':'1','TWO':'2','TOO':'2','TO':'2','THREE':'3','FREE':'3','FOUR':'4','FOR':'4',
+        'FIVE':'5','SIX':'6','SEVEN':'7','EIGHT':'8','ATE':'8','NINE':'9','TEN':'10','ELEVEN':'11',
+        'TWELVE':'12','THIRTEEN':'13','FOURTEEN':'14','FIFTEEN':'15','SIXTEEN':'16','SEVENTEEN':'17',
+        'EIGHTEEN':'18','NINETEEN':'19','TWENTY':'20','THIRTY':'30','FORTY':'40','FIFTY':'50',
+        'SIXTY':'60','SEVENTY':'70','EIGHTY':'80','NINETY':'90','HUNDRED':'100','THOUSAND':'1000'
+    };
+    var input = text.toUpperCase().trim();
+    // If it already contains digits, just strip non-digits and return
+    if (/[0-9]/.test(input)) {
+        return input.replace(/[^0-9]/g, '');
+    }
+    var words = input.split(/[\s,]+/).filter(function(w) { return w.length > 0; });
+    var total = 0;
+    var current = 0;
+    for (var i = 0; i < words.length; i++) {
+        var w = words[i];
+        if (w === 'AND' || w === '&' || w === 'A') continue; // skip connectives
+        if (wordMap[w] !== undefined) {
+            var val = parseInt(wordMap[w], 10);
+            if (val === 100) {
+                current = (current === 0 ? 1 : current) * 100;
+            } else if (val === 1000) {
+                current = (current === 0 ? 1 : current) * 1000;
+                total += current;
+                current = 0;
+            } else if (val >= 20) {
+                current += val;
+            } else {
+                current += val;
+            }
+        }
+    }
+    total += current;
+    if (total === 0) return null; // no number found
+    return String(total);
+}
+
 function _getSpeechRecognition() {
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
@@ -5834,7 +5874,42 @@ function _getSpeechRecognition() {
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
-    recognition.maxAlternatives = 1;
+    recognition.maxAlternatives = 5;
+    // --- NUMBER-ONLY GRAMMAR: restricts recognition to digits and number words only ---
+    try {
+        var SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+        if (SGL) {
+            var grammarList = new SGL();
+            var numGrammar = '#JSGF V1.0; grammar numbers; public <number> = '
+                + 'zero | one | two | three | four | five | six | seven | eight | nine '
+                + '| ten | eleven | twelve | thirteen | fourteen | fifteen | sixteen | seventeen | eighteen | nineteen '
+                + '| twenty | twenty one | twenty two | twenty three | twenty four | twenty five '
+                + '| twenty six | twenty seven | twenty eight | twenty nine '
+                + '| thirty | thirty one | thirty two | thirty three | thirty four | thirty five '
+                + '| thirty six | thirty seven | thirty eight | thirty nine '
+                + '| forty | forty one | forty two | forty three | forty four | forty five '
+                + '| forty six | forty seven | forty eight | forty nine '
+                + '| fifty | fifty one | fifty two | fifty three | fifty four | fifty five '
+                + '| fifty six | fifty seven | fifty eight | fifty nine '
+                + '| sixty | sixty one | sixty two | sixty three | sixty four | sixty five '
+                + '| sixty six | sixty seven | sixty eight | sixty nine '
+                + '| seventy | seventy one | seventy two | seventy three | seventy four | seventy five '
+                + '| seventy six | seventy seven | seventy eight | seventy nine '
+                + '| eighty | eighty one | eighty two | eighty three | eighty four | eighty five '
+                + '| eighty six | eighty seven | eighty eight | eighty nine '
+                + '| ninety | ninety one | ninety two | ninety three | ninety four | ninety five '
+                + '| ninety six | ninety seven | ninety eight | ninety nine '
+                + '| one hundred | one hundred and <number> '
+                + '| <digit> | <digit> <digit> | <digit> <digit> <digit> | <digit> <digit> <digit> <digit> '
+                + '| <digit> <digit> <digit> <digit> <digit>; '
+                + 'public <digit> = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;';
+            grammarList.addFromString(numGrammar, 100);
+            recognition.grammars = grammarList;
+        }
+    } catch (e) {
+        // Grammar not supported — recognition will work without grammar constraint
+        console.warn('Speech grammar not supported, falling back to default.', e);
+    }
     return recognition;
 }
 
@@ -5893,10 +5968,30 @@ function _startScoreListening() {
     _setVoiceStatus('Listening for score... Speak the number now.' + retryMsg, '#e67e22');
 
     scoreRecognition.onresult = function(event) {
-        var transcript = event.results[0][0].transcript.trim();
-        _setVoiceHeard(transcript);
+        // Try all alternatives to find one that contains a number
+        var bestTranscript = '';
+        var bestNumeric = '';
+        for (var a = 0; a < event.results[0].length; a++) {
+            var raw = event.results[0][a].transcript.trim().toUpperCase();
+            var numStr = raw.replace(/[^0-9]/g, '');
+            var converted = _wordsToNumber(raw);
+            var hasDigits = numStr.length > 0;
+            var hasNumberWords = converted !== null;
+            if (hasDigits || hasNumberWords) {
+                bestTranscript = raw;
+                bestNumeric = hasDigits ? numStr : (converted || numStr);
+                break; // Use first alternative that contains a number
+            }
+            if (a === 0) bestTranscript = raw; // fallback to first result
+        }
+        // If no alternative had a clear number, try converting the best transcript
+        if (!bestNumeric) {
+            var converted = _wordsToNumber(bestTranscript);
+            bestNumeric = converted || bestTranscript;
+        }
+        _setVoiceHeard(bestTranscript);
         _voiceScoreRetryCount = 0; // Reset on successful recognition
-        _applyVoiceScore(transcript);
+        _applyVoiceScore(bestNumeric);
     };
 
     scoreRecognition.onerror = function(event) {
@@ -5963,9 +6058,29 @@ function startVoiceExamNumber(silent) {
     if (!silent) _playSound1_CallExamNumber();
 
     recognition.onresult = function(event) {
-        var transcript = event.results[0][0].transcript.trim().toUpperCase();
-        _setVoiceHeard(transcript);
-        _matchExamNumber(transcript, form, subject);
+        // Try all alternatives to find one that contains a number
+        var bestTranscript = '';
+        var bestNumeric = '';
+        for (var a = 0; a < event.results[0].length; a++) {
+            var raw = event.results[0][a].transcript.trim().toUpperCase();
+            var numStr = raw.replace(/[^0-9]/g, '');
+            var converted = _wordsToNumber(raw);
+            var hasDigits = numStr.length > 0;
+            var hasNumberWords = converted !== null;
+            if (hasDigits || hasNumberWords) {
+                bestTranscript = raw;
+                bestNumeric = hasDigits ? numStr : (converted || numStr);
+                break; // Use first alternative that contains a number
+            }
+            if (a === 0) bestTranscript = raw; // fallback to first result
+        }
+        // If no alternative had a clear number, try converting the best transcript
+        if (!bestNumeric) {
+            var converted = _wordsToNumber(bestTranscript);
+            bestNumeric = converted || bestTranscript;
+        }
+        _setVoiceHeard(bestTranscript);
+        _matchExamNumber(bestNumeric, form, subject);
         // Do NOT reset button here — it stays active until calling is done
     };
 
