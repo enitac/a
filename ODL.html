@@ -1740,7 +1740,7 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
     <!-- Voice Score Entry -->
     <div id="voiceControlPanel" style="margin-top:15px;padding:12px;border:2px dashed #8e44ad;border-radius:10px;background:#fdf5ff;">
         <p style="font-size:0.95em;color:#8e44ad;font-weight:700;margin-bottom:8px;">Voice Score Entry</p>
-        <p id="voiceStatus" style="font-size:0.82em;color:#555;margin-bottom:10px;">Click mic, say exam number + score together (e.g. "101 85") or separately.</p>
+        <p id="voiceStatus" style="font-size:0.82em;color:#555;margin-bottom:10px;">Click the mic button and call out the exam number.</p>
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
             <button id="voiceExamBtn" onclick="startVoiceExamNumber()" style="background:#8e44ad;max-width:180px;display:flex;align-items:center;justify-content:center;gap:6px;">
                 <span style="font-size:1.3em;">&#127908;</span> Call Exam Number
@@ -5787,7 +5787,7 @@ function _playSound1_CallExamNumber() {
     } catch (e) {}
 }
 
-// --- Sound 2: tiny click — call score (shortened for fast entry) ---
+// --- Sound 2: single dong — call score (shortened for faster transitions) ---
 function _playSound2_CallScore() {
     try {
         var ctx = _getAudioCtx();
@@ -5795,29 +5795,13 @@ function _playSound2_CallScore() {
         var gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.value = 1047;
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.08);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.12);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.04);
-    } catch (e) {}
-}
-
-// --- Sound 3: confirmation tick — score saved ---
-function _playSound3_ScoreSaved() {
-    try {
-        var ctx = _getAudioCtx();
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.25, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.03);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.03);
+        osc.stop(ctx.currentTime + 0.12);
     } catch (e) {}
 }
 
@@ -5932,9 +5916,6 @@ function _startScoreListening() {
     var scoreRecognition = _getSpeechRecognition();
     if (!scoreRecognition) return;
     _voiceRecognition = scoreRecognition;
-    // SPEED OPTIMIZATION: Enable interim results for score — scores are short numbers, 
-    // so interim results are accurate and allow instant reaction
-    scoreRecognition.interimResults = true;
 
     var retryMsg = _voiceScoreRetryCount > 0 ? ' (Retry ' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')' : '';
     _setVoiceStatus('Listening for score... Speak the number now.' + retryMsg, '#e67e22');
@@ -5942,17 +5923,8 @@ function _startScoreListening() {
     scoreRecognition.onresult = function(event) {
         var transcript = event.results[0][0].transcript.trim();
         _setVoiceHeard(transcript);
-        // SPEED: On interim results, check if it's already a valid score — apply immediately
-        // (no need to wait for final if we already have a clean number)
-        var scoreStr = transcript.replace(/[^0-9]/g, '');
-        var score = parseInt(scoreStr, 10);
-        if (!isNaN(score) && scoreStr !== '' && score >= 0 && score <= 100) {
-            // Valid score detected — stop recognition immediately and apply
-            try { scoreRecognition.stop(); } catch(e) {}
-            _voiceScoreRetryCount = 0;
-            _applyVoiceScore(transcript);
-        }
-        // If not a valid score yet, wait for more speech (interim will keep firing)
+        _voiceScoreRetryCount = 0; // Reset on successful recognition
+        _applyVoiceScore(transcript);
     };
 
     scoreRecognition.onerror = function(event) {
@@ -6097,72 +6069,18 @@ function _matchExamNumber(transcript, form, subject) {
     currentStudentEl.textContent = student['Exam Number'] + ' — ' + (student["STUDENT'S NAME"] || 'Unknown');
     currentStudentEl.style.display = 'block';
 
-    // SPEED OPTIMIZATION: Check if the transcript also contains a score (combined utterance: "101 85")
-    // Extract trailing number(s) from the original transcript after the exam number portion
-    var combinedScore = _extractCombinedScore(transcript, students[matchIndex]['Exam Number']);
+    _setVoiceStatus('Student found! ' + student['Exam Number'] + ' — ' + (student["STUDENT'S NAME"] || 'Unknown'), '#2ecc71');
 
-    if (combinedScore !== null) {
-        // Combined mode: exam number + score in one utterance — apply score immediately
-        _setScoreInputsReadOnly(true);
-        var form = document.getElementById('dataClassSelect').value;
-        var subject = document.getElementById('dataSubjectSelect').value;
-        var scoreInput = document.getElementById('score_' + _voiceCurrentIndex);
-        if (scoreInput) {
-            scoreInput.removeAttribute('readonly');
-            scoreInput.value = combinedScore;
-            scoreInput.setAttribute('readonly', '');
-            updateStudentScore(form, _voiceCurrentIndex, subject, String(combinedScore));
-        }
-        _playSound3_ScoreSaved();
-        _setVoiceStatus(combinedScore + ' entered for ' + (student['Exam Number'] || '') + ' — ' + (student["STUDENT'S NAME"] || 'Unknown') + '. Next!', '#2ecc71');
-        _voiceCurrentIndex = null;
-        document.getElementById('voiceCurrentStudent').style.display = 'none';
-        _highlightRow(null);
-        // FAST LOOP: Immediately restart for next student
-        startVoiceExamNumber(true);
-    } else {
-        // Two-phase mode: play click and start listening for score
-        _setVoiceStatus('Student found! ' + student['Exam Number'] + ' — ' + (student["STUDENT'S NAME"] || 'Unknown'), '#2ecc71');
-        _playSound2_CallScore();
-        _voiceScoreRetryCount = 0;
-        _showRetryButton(false);
-        _startScoreListening();
-    }
-}
+    // SURGICAL FIX: Play Sound 2 to signal "Call Score"
+    _playSound2_CallScore();
 
-// --- SPEED OPTIMIZATION: Extract score from combined utterance ("101 85" → 85) ---
-function _extractCombinedScore(transcript, examNumber) {
-    // Normalize: uppercase, trim
-    var raw = transcript.trim().toUpperCase();
-    var examNorm = (examNumber || '').toUpperCase().replace(/[\s.\-_,]/g, '');
+    // SURGICAL FIX: Do NOT focus the score input during voice entry — it triggers the phone keyboard popup.
+    // The voice system sets the score programmatically via _applyVoiceScore(), so focus is unnecessary.
 
-    // Strategy: split the transcript into tokens, find the exam number token(s),
-    // then check if the remaining token(s) form a valid score (0-100)
-    // Speech recognition often outputs: "101 85" or "101 85." or "one zero one 85"
-
-    // Remove the exam number portion from the transcript to find leftover numbers
-    var leftover = raw;
-    // Try removing the exam number as a prefix
-    var cleanedRaw = raw.replace(/[\s.\-_,]/g, '');
-    if (cleanedRaw.indexOf(examNorm) === 0) {
-        leftover = raw.substring(examNorm.length);
-    } else {
-        // Try finding exam number within the transcript and take what comes after
-        var rawNoSpace = raw.replace(/\s+/g, ' ');
-        var examInRaw = rawNoSpace.indexOf(examNumber.toUpperCase());
-        if (examInRaw !== -1) {
-            leftover = rawNoSpace.substring(examInRaw + examNumber.length);
-        }
-    }
-
-    // Clean leftover: extract only digits
-    leftover = leftover.replace(/[^0-9]/g, '');
-    if (leftover === '') return null;
-
-    var score = parseInt(leftover, 10);
-    if (isNaN(score) || score < 0 || score > 100) return null;
-
-    return score;
+    // FAST TRANSITION: Immediately start listening for score (no delay)
+    _voiceScoreRetryCount = 0;
+    _showRetryButton(false);
+    _startScoreListening();
 }
 
 function startVoiceScoreEntry() {
@@ -6211,10 +6129,7 @@ function _applyVoiceScore(transcript) {
         updateStudentScore(form, _voiceCurrentIndex, subject, String(score));
     }
 
-    // SPEED: Play confirmation tick
-    _playSound3_ScoreSaved();
-
-    _setVoiceStatus('Score ' + score + ' entered for ' + (currentClassData[form][_voiceCurrentIndex]['Exam Number'] || '') + '. Next!', '#2ecc71');
+    _setVoiceStatus('Score ' + score + ' entered for ' + (currentClassData[form][_voiceCurrentIndex]['Exam Number'] || '') + '. Ready for next student.', '#2ecc71');
 
     // Auto-advance: prepare for next student
     _voiceCurrentIndex = null;
