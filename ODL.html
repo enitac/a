@@ -6046,12 +6046,8 @@ function _matchExamNumber(transcript, form, subject) {
     // SURGICAL FIX: Play Sound 2 to signal "Call Score"
     _playSound2_CallScore();
 
-    // Focus the score input for this student
-    var scoreInput = document.getElementById('score_' + matchIndex);
-    if (scoreInput && !scoreInput.readOnly) {
-        scoreInput.focus();
-        scoreInput.select();
-    }
+    // SURGICAL FIX: Do NOT focus the score input during voice entry — it triggers the phone keyboard popup.
+    // The voice system sets the score programmatically via _applyVoiceScore(), so focus is unnecessary.
 
     // FAST TRANSITION: Immediately start listening for score (no delay)
     _voiceScoreRetryCount = 0;
