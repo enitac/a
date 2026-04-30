@@ -5515,8 +5515,9 @@ async function displayAnalysisSheet(form) {
     const totalFailPercent = totalEntered > 0 ? ((totalFail / totalEntered) * 100).toFixed(1) : '0.0';
 
     html += `
-    <div style="display:flex;gap:10px;margin-top:15px;width:100%;">
-    <table id="analysisSummaryTable" style="width:50%;border-collapse:collapse;border:1px solid black;">
+    <div class="analysis-page2" style="page-break-before:always;margin-top:20px;width:100%;">
+    <h3 style="text-align:center;margin-bottom:10px;font-size:1em;color:#2c3e50;">Gender Performance Summary (Boys &amp; Girls)</h3>
+    <table id="analysisSummaryTable" style="width:100%;border-collapse:collapse;border:1px solid black;">
         <thead>
             <tr style="background:#ecf0f1;">
                 <th style="border:1px solid black;padding:6px;width:15%;"></th>
@@ -5554,7 +5555,8 @@ async function displayAnalysisSheet(form) {
             </tr>
         </tbody>
     </table>
-    <table id="analysisSNETable" style="width:50%;border-collapse:collapse;border:1px solid black;">
+    <h3 style="text-align:center;margin:20px 0 10px 0;font-size:1em;color:#2c3e50;">SNE (Special Needs Education) Performance Summary</h3>
+    <table id="analysisSNETable" style="width:100%;border-collapse:collapse;border:1px solid black;">
         <thead>
             <tr style="background:#ecf0f1;">
                 <th style="border:1px solid black;padding:6px;width:15%;"></th>
@@ -5703,7 +5705,7 @@ async function showStudentMarksList() {
     applySNEColumnToTable();
 
     // Auto-activate voice mic now that students are loaded
-    setTimeout(function() { startVoiceExamNumber(true); }, 300);
+    setTimeout(function() { startVoiceExamNumber(true); }, 100);
 }
 
 function updateStudentScore(form, index, subject, value) {
@@ -5792,13 +5794,13 @@ function _playSound2_CallScore() {
         var gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.value = 1047;
-        gain.gain.setValueAtTime(0.5, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.15);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.08);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.12);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.25);
+        osc.stop(ctx.currentTime + 0.12);
     } catch (e) {}
 }
 
@@ -5856,7 +5858,7 @@ function _highlightRow(index) {
     if (index === null || index < 0 || !rows[index]) return;
     // Highlight new row and scroll into view
     rows[index].style.background = '#d4edda';
-    rows[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    rows[index].scrollIntoView({ behavior: 'instant', block: 'center' });
 }
 
 function _stopRecognition() {
@@ -5915,7 +5917,7 @@ function _startScoreListening() {
         // (all retries are handled here to avoid double-retry from onerror + onend)
         if (_voiceMode === 'score' && _voiceCallActive && _voiceScoreRetryCount < _voiceScoreMaxRetries) {
             _voiceScoreRetryCount++;
-            setTimeout(function() { _startScoreListening(); }, 30);
+            setTimeout(function() { _startScoreListening(); }, 10);
         } else if (_voiceMode === 'score' && _voiceCallActive && _voiceScoreRetryCount >= _voiceScoreMaxRetries) {
             _setVoiceStatus('Score not heard after ' + _voiceScoreMaxRetries + ' attempts. Click "Retry Score" or call next exam number.', '#e74c3c');
             _showRetryButton(true);
@@ -6071,7 +6073,7 @@ function _applyVoiceScore(transcript) {
         _voiceScoreRetryCount++;
         if (_voiceScoreRetryCount <= _voiceScoreMaxRetries) {
             _setVoiceStatus('Could not understand "' + transcript + '". Auto-retrying (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')...', '#e67e22');
-            setTimeout(function() { _startScoreListening(); }, 30);
+            setTimeout(function() { _startScoreListening(); }, 10);
         } else {
             _setVoiceStatus('Could not understand score after ' + _voiceScoreMaxRetries + ' retries. Click "Retry Score" to try again.', '#e74c3c');
             _showRetryButton(true);
@@ -6083,7 +6085,7 @@ function _applyVoiceScore(transcript) {
         _voiceScoreRetryCount++;
         if (_voiceScoreRetryCount <= _voiceScoreMaxRetries) {
             _setVoiceStatus('Invalid score (' + score + '). Auto-retrying (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')...', '#e67e22');
-            setTimeout(function() { _startScoreListening(); }, 30);
+            setTimeout(function() { _startScoreListening(); }, 10);
         } else {
             _setVoiceStatus('Invalid score after ' + _voiceScoreMaxRetries + ' retries. Click "Retry Score" to try again.', '#e74c3c');
             _showRetryButton(true);
