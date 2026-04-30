@@ -944,6 +944,22 @@ function saveSelectedSubjectsToRepo() {
             max-width: 100% !important;
             margin: 8px auto !important;
         }
+
+        /* SURGICAL FIX: Full analysis table headers on mobile portrait */
+        #analysisTable {
+            table-layout: auto !important;
+        }
+        #analysisTable th {
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+            height: auto !important;
+            padding: 8px 4px !important;
+            font-size: 0.85em !important;
+            line-height: 1.2;
+        }
     }
 
     /* Desktop Table Adjustments */
