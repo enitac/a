@@ -741,6 +741,15 @@ function saveSelectedSubjectsToRepo() {
         text-overflow: ellipsis;
     }
 
+    /* SURGICAL FIX: Prevent subject name truncation in analysis table */
+    #analysisTable th:first-child,
+    #analysisTable td:first-child {
+        width: 160px;
+        min-width: 160px;
+        overflow: visible;
+        text-overflow: unset;
+    }
+
     #resultsTable th, #gradesTable th, #analysisTable th, #scoresTable th, #briefResultsTable th {
         background: #ecf0f1;
         color: #2c3e50;
@@ -1495,34 +1504,6 @@ function saveSelectedSubjectsToRepo() {
 
     #scoreSheetView #scoresTable thead th,
     #gradesPage #gradesTable thead th {
-        background: #ecf0f1 !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.15) !important;
-    }
-
-    /* Surgical Fix: Analysis page landscape — stretch table to match smaller tables, readable headers */
-    #analysisPage .table-wrapper {
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    #analysisPage #analysisTable {
-        table-layout: auto !important;
-    }
-
-    #analysisPage #analysisTable th,
-    #analysisPage #analysisTable td {
-        overflow: visible !important;
-        text-overflow: clip !important;
-    }
-
-    #analysisPage #analysisTable thead {
-        position: sticky !important;
-        top: 0 !important;
-        z-index: 10 !important;
-        background: #ecf0f1 !important;
-    }
-
-    #analysisPage #analysisTable thead th {
         background: #ecf0f1 !important;
         box-shadow: 0 1px 2px rgba(0,0,0,0.15) !important;
     }
