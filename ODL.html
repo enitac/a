@@ -5787,9 +5787,6 @@ async function showStudentMarksList() {
         lockIndicator.style.display = 'block';
     }
 
-    // Clear any previous voice-entered row locks when switching class/subject
-    _voiceEnteredRows = {};
-
     // Apply SNE column visibility to header
     applySNEColumnToTable();
 
@@ -5869,7 +5866,6 @@ var _voiceScoreRetryCount = 0;  // Track retry attempts for score listening
 var _voiceScoreProcessed = false; // Track if onresult fired to prevent double-retry
 var _voiceScoreGeneration = 0;   // SURGICAL FIX: Generation counter — stale callbacks from old recognitions are ignored
 var _sharedAudioCtx = null;    // Shared AudioContext to prevent double-sound glitches
-var _voiceEnteredRows = {};   // Track rows that already have scores entered in the current calling session — key: form+subject+index, value: true
 
 function _getAudioCtx() {
     if (!_sharedAudioCtx) {
@@ -5881,45 +5877,45 @@ function _getAudioCtx() {
     return _sharedAudioCtx;
 }
 
-// --- Sound 1: single short beep — call exam number (clean, no echo) ---
+// --- Sound 1: single beep — call exam number ---
 function _playSound1_CallExamNumber() {
     try {
         var ctx = _getAudioCtx();
         var osc = ctx.createOscillator();
         var gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = 600;
-        gain.gain.setValueAtTime(0.45, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        osc.type = 'sine';
+        osc.frequency.value = 520;
+        gain.gain.setValueAtTime(0.5, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.25);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.35);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.15);
-        osc.onended = function() { try { osc.disconnect(); gain.disconnect(); } catch(e) {} };
+        osc.stop(ctx.currentTime + 0.35);
     } catch (e) {}
 }
 
-// --- Sound 2: single short ding — call score (clean, no echo) ---
+// --- Sound 2: single dong — call score (shortened for faster transitions) ---
 function _playSound2_CallScore() {
     try {
         var ctx = _getAudioCtx();
         var osc = ctx.createOscillator();
         var gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.35, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        osc.type = 'sine';
+        osc.frequency.value = 1047;
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.08);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.12);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.1);
-        osc.onended = function() { try { osc.disconnect(); gain.disconnect(); } catch(e) {} };
+        osc.stop(ctx.currentTime + 0.12);
     } catch (e) {}
 }
 
 
 
-// --- SURGICAL FIX: Cancel voice entry, reset buttons, and UNLOCK all previously entered rows ---
+// --- SURGICAL FIX: Cancel voice entry and reset buttons ---
 function _cancelVoiceEntry() {
     _stopRecognition();
     _voiceCallActive = false;
@@ -5932,68 +5928,9 @@ function _cancelVoiceEntry() {
     document.getElementById('voiceExamBtn').style.background = '#8e44ad';
     document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Call Exam Number';
     document.getElementById('voiceCurrentStudent').style.display = 'none';
-    _setVoiceStatus('Voice entry cancelled. You can now edit any scores, then click "Call Exam Number" to continue.', '#555');
+    _setVoiceStatus('Voice entry cancelled. Click "Call Exam Number" to start again.', '#555');
     _setVoiceHeard('');
 
-    // UNLOCK all previously locked rows so scores can be edited manually
-    _unlockAllVoiceRows();
-}
-
-// --- Unlock all rows that were locked by voice entry in this session ---
-function _unlockAllVoiceRows() {
-    var form = document.getElementById('dataClassSelect').value;
-    var subject = document.getElementById('dataSubjectSelect').value;
-    if (!form || !subject) { _voiceEnteredRows = {}; return; }
-    var prefix = form + '|' + subject + '|';
-    for (var key in _voiceEnteredRows) {
-        if (_voiceEnteredRows.hasOwnProperty(key) && key.indexOf(prefix) === 0) {
-            var parts = key.split('|');
-            var idx = parts[2];
-            var scoreInput = document.getElementById('score_' + idx);
-            if (scoreInput) {
-                scoreInput.readOnly = false;
-                scoreInput.style.background = '';
-                scoreInput.style.borderColor = '#cc6600';
-                scoreInput.style.color = '';
-                scoreInput.title = '';
-                // Restore oninput handler
-                scoreInput.oninput = function() {
-                    var f = document.getElementById('dataClassSelect').value;
-                    var s = document.getElementById('dataSubjectSelect').value;
-                    var idParts = this.id.split('_');
-                    var rowIdx = idParts[1];
-                    updateStudentScore(f, parseInt(rowIdx), s, this.value);
-                };
-            }
-            delete _voiceEnteredRows[key];
-        }
-    }
-}
-
-// --- Lock a specific row after voice enters a score ---
-function _lockVoiceRow(form, subject, index) {
-    var key = form + '|' + subject + '|' + index;
-    _voiceEnteredRows[key] = true;
-    var scoreInput = document.getElementById('score_' + index);
-    if (scoreInput) {
-        scoreInput.readOnly = true;
-        scoreInput.style.background = '#e8f5e9';
-        scoreInput.style.borderColor = '#28a745';
-        scoreInput.style.color = '#155724';
-        scoreInput.title = 'Locked — entered via voice. Cancel calling to edit.';
-        scoreInput.oninput = null; // Prevent any input while locked
-    }
-    // Also style the row to show it's locked
-    var tbody = document.getElementById('dataEntryTableBody');
-    if (tbody && tbody.rows[index]) {
-        tbody.rows[index].style.background = '#e8f5e9';
-    }
-}
-
-// --- Check if a row is locked by voice entry ---
-function _isVoiceRowLocked(form, subject, index) {
-    var key = form + '|' + subject + '|' + index;
-    return !!_voiceEnteredRows[key];
 }
 
 function _wordsToNumber(text) {
@@ -6328,15 +6265,6 @@ function _matchExamNumber(transcript, form, subject) {
         return;
     }
 
-    // SURGICAL FIX: Check if this row was already entered via voice — prevent overwriting
-    if (_isVoiceRowLocked(form, subject, matchIndex)) {
-        var lockedStudent = students[matchIndex];
-        _setVoiceStatus(lockedStudent['Exam Number'] + ' already has a score entered. Skipping... Call next exam number.', '#e67e22');
-        _highlightRow(null);
-        // Stay in exam mode and keep listening for the next exam number
-        return;
-    }
-
     // Found the student
     var student = students[matchIndex];
     _voiceCurrentIndex = matchIndex;
@@ -6391,13 +6319,6 @@ function _applyVoiceScore(transcript) {
             }
         }
         if (examMatch !== -1 && examMatch !== _voiceCurrentIndex) {
-            // SURGICAL FIX: Check if the target row is already locked by voice entry
-            if (_isVoiceRowLocked(form, subject, examMatch)) {
-                _setVoiceStatus(students[examMatch]['Exam Number'] + ' already has a score entered. Skipping...', '#e67e22');
-                // Stay on current student, keep listening for score
-                setTimeout(function() { _startScoreListening(); }, 300);
-                return;
-            }
             // Heard a DIFFERENT exam number — switch to that student immediately
             _setVoiceStatus('Switching to ' + students[examMatch]['Exam Number'] + '...', '#8e44ad');
             _voiceScoreRetryCount = 0;
@@ -6443,11 +6364,9 @@ function _applyVoiceScore(transcript) {
     if (scoreInput && !scoreInput.readOnly) {
         scoreInput.value = score;
         updateStudentScore(form, _voiceCurrentIndex, subject, String(score));
-        // SURGICAL FIX: Lock this row to prevent accidental overwrite by future voice calls
-        _lockVoiceRow(form, subject, _voiceCurrentIndex);
     }
 
-    _setVoiceStatus('Score ' + score + ' entered for ' + (currentClassData[form][_voiceCurrentIndex]['Exam Number'] || '') + '. Row locked. Ready for next student.', '#2ecc71');
+    _setVoiceStatus('Score ' + score + ' entered for ' + (currentClassData[form][_voiceCurrentIndex]['Exam Number'] || '') + '. Ready for next student.', '#2ecc71');
 
     // Auto-advance: prepare for next student
     _voiceCurrentIndex = null;
