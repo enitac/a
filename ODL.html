@@ -5866,6 +5866,7 @@ var _voiceScoreRetryCount = 0;  // Track retry attempts for score listening
 var _voiceScoreProcessed = false; // SURGICAL FIX: Track if onresult fired to prevent double-retry
 var _voiceScoreMaxRetries = 10; // Max retry attempts for score listening
 var _voiceLockedIndices = {};   // Row indices locked by voice entry this session (keyed by index) — only cleared on cancel
+var _suppressExamRestart = false; // Flag: when true, onend handler must NOT auto-restart exam listening
 var _sharedAudioCtx = null;    // Shared AudioContext to prevent double-sound glitches
 
 // --- Freeze scored rows during voice calling to prevent accidental overwrites ---
@@ -6174,7 +6175,11 @@ function _startScoreListening() {
     };
 
     scoreRecognition.onend = function() {
-        _voiceRecognition = null;
+        // Only null out _voiceRecognition if it still points to THIS instance
+        // Prevents race condition when a newer recognition was already started
+        if (_voiceRecognition === scoreRecognition) {
+            _voiceRecognition = null;
+        }
         // SURGICAL FIX: Only retry if onresult NEVER fired (no speech detected at all)
         // If onresult did fire, _applyVoiceScore handles retrying — prevents double-retry race condition
         if (_voiceMode === 'score' && _voiceCallActive && !_voiceScoreProcessed) {
@@ -6265,9 +6270,14 @@ function startVoiceExamNumber(silent) {
     };
 
     recognition.onend = function() {
-        _voiceRecognition = null;
+        // Only null out _voiceRecognition if it still points to THIS instance
+        // Prevents race condition when a newer recognition was already started
+        if (_voiceRecognition === recognition) {
+            _voiceRecognition = null;
+        }
         // Keep listening for exam number — mic stays open until cancelled
-        if (_voiceMode === 'exam' && _voiceCallActive) {
+        // BUT do NOT restart if _suppressExamRestart is true (locked-row timeout already handling it)
+        if (_voiceMode === 'exam' && _voiceCallActive && !_suppressExamRestart) {
             _setVoiceStatus('Still listening for exam number...', '#8e44ad');
             setTimeout(function() { startVoiceExamNumber(true); }, 10);
         }
@@ -6330,8 +6340,11 @@ function _matchExamNumber(transcript, form, subject) {
     // --- LOCK CHECK: If this row already has a score, it is locked — skip and keep listening ---
     if (matchedInput && matchedInput.value && matchedInput.value.trim() !== '') {
         _setVoiceStatus('Exam ' + student['Exam Number'] + ' already scored (' + matchedInput.value.trim() + '). Skipping...', '#e67e22');
+        // Prevent onend from auto-restarting — WE will handle the restart after the delay
+        _suppressExamRestart = true;
         setTimeout(function() {
             _highlightRow(null);
+            _suppressExamRestart = false;
             if (_voiceCallActive) startVoiceExamNumber(true);
         }, 1500);
         return;
