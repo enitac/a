@@ -6295,6 +6295,47 @@ function startVoiceScoreEntry() {
 }
 
 function _applyVoiceScore(transcript) {
+    var form = document.getElementById('dataClassSelect').value;
+    var subject = document.getElementById('dataSubjectSelect').value;
+
+    // SURGICAL FIX: Always check if the heard number is a new exam number call
+    // This allows calling a new student at ANY time, even while waiting for a score
+    var students = currentClassData[form];
+    if (students) {
+        var cleaned = transcript.replace(/[\s.\-_,]/g, '');
+        var examMatch = -1;
+        for (var i = 0; i < students.length; i++) {
+            var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
+            if (cleaned === examNo) { examMatch = i; break; }
+        }
+        if (examMatch === -1) {
+            for (var i = 0; i < students.length; i++) {
+                var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
+                if (examNo.length > 1 && cleaned.length > 1) {
+                    var numPart = examNo.replace(/^[A-Z]+/, '');
+                    if (numPart && cleaned.indexOf(numPart) !== -1) { examMatch = i; break; }
+                    if (cleaned.indexOf(examNo) !== -1 || examNo.indexOf(cleaned) !== -1) { examMatch = i; break; }
+                }
+            }
+        }
+        if (examMatch !== -1 && examMatch !== _voiceCurrentIndex) {
+            // Heard a DIFFERENT exam number — switch to that student immediately
+            _setVoiceStatus('Switching to ' + students[examMatch]['Exam Number'] + '...', '#8e44ad');
+            _voiceScoreRetryCount = 0;
+            _highlightRow(examMatch);
+            _voiceCurrentIndex = examMatch;
+            _voiceCurrentRow = examMatch;
+            var currentStudentEl = document.getElementById('voiceCurrentStudent');
+            currentStudentEl.textContent = students[examMatch]['Exam Number'] + ' — ' + (students[examMatch]["STUDENT'S NAME"] || 'Unknown');
+            currentStudentEl.style.display = 'block';
+            _playSound2_CallScore();
+            _voiceScoreRetryCount = 0;
+            _showRetryButton(false);
+            setTimeout(function() { _startScoreListening(); }, 300);
+            return;
+        }
+    }
+
     // Extract numeric score from transcript
     var scoreStr = transcript.replace(/[^0-9]/g, '');
     var score = parseInt(scoreStr, 10);
@@ -6314,9 +6355,6 @@ function _applyVoiceScore(transcript) {
         setTimeout(function() { _startScoreListening(); }, 10);
         return;
     }
-
-    var form = document.getElementById('dataClassSelect').value;
-    var subject = document.getElementById('dataSubjectSelect').value;
 
     // SURGICAL FIX: Reset retry count only when a valid score is about to be entered
     _voiceScoreRetryCount = 0;
