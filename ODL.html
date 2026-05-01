@@ -5863,7 +5863,8 @@ var _voiceRecognition = null;   // Active SpeechRecognition instance
 var _voiceMode = 'exam';        // 'exam' or 'score'
 var _voiceCallActive = false;   // Whether the Call Exam Number button has been activated (remains true until done)
 var _voiceScoreRetryCount = 0;  // Track retry attempts for score listening
-var _voiceScoreProcessed = false; // SURGICAL FIX: Track if onresult fired to prevent double-retry
+var _voiceScoreProcessed = false; // Track if onresult fired to prevent double-retry
+var _voiceScoreGeneration = 0;   // SURGICAL FIX: Generation counter — stale callbacks from old recognitions are ignored
 var _sharedAudioCtx = null;    // Shared AudioContext to prevent double-sound glitches
 
 function _getAudioCtx() {
@@ -6068,16 +6069,18 @@ function _manualRetryScore() {
 // --- Helper: start listening for score with auto-retry ---
 function _startScoreListening() {
     _voiceMode = 'score';
-    _voiceScoreProcessed = false; // SURGICAL FIX: Reset flag for each new listening session
+    _voiceScoreProcessed = false;
+    _stopRecognition(); // SURGICAL FIX: Kill any old recognition before starting new one
+    var myGeneration = ++_voiceScoreGeneration; // SURGICAL FIX: Increment generation — stale callbacks check this
     var scoreRecognition = _getSpeechRecognition();
     if (!scoreRecognition) return;
     _voiceRecognition = scoreRecognition;
 
-    var retryMsg = _voiceScoreRetryCount > 0 ? ' (Retry ' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')' : '';
-    _setVoiceStatus('Listening for score... Speak the number now.' + retryMsg, '#e67e22');
+    _setVoiceStatus('Listening for score... Speak the number now.', '#e67e22');
 
     scoreRecognition.onresult = function(event) {
-        // SURGICAL FIX: Mark that onresult fired so onend doesn't double-retry
+        // SURGICAL FIX: Ignore if a newer session has started
+        if (myGeneration !== _voiceScoreGeneration) return;
         _voiceScoreProcessed = true;
         // Try all alternatives to find one that contains a number
         var bestTranscript = '';
@@ -6101,29 +6104,31 @@ function _startScoreListening() {
             bestNumeric = converted || bestTranscript;
         }
         _setVoiceHeard(bestTranscript);
-        // SURGICAL FIX: Removed _voiceScoreRetryCount = 0 from here — only reset on valid score
         _applyVoiceScore(bestNumeric);
     };
 
     scoreRecognition.onerror = function(event) {
+        // SURGICAL FIX: Ignore if a newer session has started
+        if (myGeneration !== _voiceScoreGeneration) return;
         console.warn('Score speech error:', event.error);
-        // Don't retry here — let onend handle retries to avoid double-retry bug
         if (event.error === 'not-allowed') {
             _voiceCallActive = false;
             _setVoiceStatus('Microphone access denied. Allow mic access in browser settings.', '#e74c3c');
             _showRetryButton(true);
         } else {
-            _setVoiceStatus('Error: ' + event.error + ', retrying...', '#e67e22');
+            _setVoiceStatus('Error: ' + event.error + ', restarting...', '#e67e22');
         }
     };
 
     scoreRecognition.onend = function() {
+        // SURGICAL FIX: Ignore if a newer session has started — prevents double-retry completely
+        if (myGeneration !== _voiceScoreGeneration) return;
         _voiceRecognition = null;
-        // SURGICAL FIX: Only retry if onresult NEVER fired (no speech detected at all)
-        // If onresult did fire, _applyVoiceScore handles retrying — prevents double-retry race condition
+        // Only retry here if onresult NEVER fired (no speech at all)
+        // If onresult fired, _applyVoiceScore handles retrying
         if (_voiceMode === 'score' && _voiceCallActive && !_voiceScoreProcessed) {
             _voiceScoreRetryCount++;
-            _setVoiceStatus('No score heard yet. Still listening... (Attempt ' + _voiceScoreRetryCount + ')', '#e67e22');
+            _setVoiceStatus('No score heard yet. Still listening...', '#e67e22');
             setTimeout(function() { _startScoreListening(); }, 10);
         }
     };
@@ -6290,6 +6295,47 @@ function startVoiceScoreEntry() {
 }
 
 function _applyVoiceScore(transcript) {
+    var form = document.getElementById('dataClassSelect').value;
+    var subject = document.getElementById('dataSubjectSelect').value;
+
+    // SURGICAL FIX: Always check if the heard number is a new exam number call
+    // This allows calling a new student at ANY time, even while waiting for a score
+    var students = currentClassData[form];
+    if (students) {
+        var cleaned = transcript.replace(/[\s.\-_,]/g, '');
+        var examMatch = -1;
+        for (var i = 0; i < students.length; i++) {
+            var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
+            if (cleaned === examNo) { examMatch = i; break; }
+        }
+        if (examMatch === -1) {
+            for (var i = 0; i < students.length; i++) {
+                var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
+                if (examNo.length > 1 && cleaned.length > 1) {
+                    var numPart = examNo.replace(/^[A-Z]+/, '');
+                    if (numPart && cleaned.indexOf(numPart) !== -1) { examMatch = i; break; }
+                    if (cleaned.indexOf(examNo) !== -1 || examNo.indexOf(cleaned) !== -1) { examMatch = i; break; }
+                }
+            }
+        }
+        if (examMatch !== -1 && examMatch !== _voiceCurrentIndex) {
+            // Heard a DIFFERENT exam number — switch to that student immediately
+            _setVoiceStatus('Switching to ' + students[examMatch]['Exam Number'] + '...', '#8e44ad');
+            _voiceScoreRetryCount = 0;
+            _highlightRow(examMatch);
+            _voiceCurrentIndex = examMatch;
+            _voiceCurrentRow = examMatch;
+            var currentStudentEl = document.getElementById('voiceCurrentStudent');
+            currentStudentEl.textContent = students[examMatch]['Exam Number'] + ' — ' + (students[examMatch]["STUDENT'S NAME"] || 'Unknown');
+            currentStudentEl.style.display = 'block';
+            _playSound2_CallScore();
+            _voiceScoreRetryCount = 0;
+            _showRetryButton(false);
+            setTimeout(function() { _startScoreListening(); }, 300);
+            return;
+        }
+    }
+
     // Extract numeric score from transcript
     var scoreStr = transcript.replace(/[^0-9]/g, '');
     var score = parseInt(scoreStr, 10);
@@ -6309,9 +6355,6 @@ function _applyVoiceScore(transcript) {
         setTimeout(function() { _startScoreListening(); }, 10);
         return;
     }
-
-    var form = document.getElementById('dataClassSelect').value;
-    var subject = document.getElementById('dataSubjectSelect').value;
 
     // SURGICAL FIX: Reset retry count only when a valid score is about to be entered
     _voiceScoreRetryCount = 0;
