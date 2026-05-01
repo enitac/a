@@ -6208,13 +6208,26 @@ function _startScoreListening() {
         // SURGICAL FIX: Only retry if onresult NEVER fired (no speech detected at all)
         // If onresult did fire, _applyVoiceScore handles retrying — prevents double-retry race condition
         if (_voiceMode === 'score' && _voiceCallActive && !_voiceScoreProcessed) {
+            // SURGICAL FIX: Check max retries — show "Score not responding" and return to exam mode
+            if (_voiceScoreRetryCount >= _voiceScoreMaxRetries) {
+                _setVoiceStatus('Score not responding. Returning to exam number...', '#e74c3c');
+                _voiceCurrentIndex = null;
+                document.getElementById('voiceCurrentStudent').style.display = 'none';
+                _setVoiceHeard('');
+                _highlightRow(null);
+                setTimeout(function() {
+                    if (_voiceCallActive) startVoiceExamNumber(true);
+                }, 1500);
+                return;
+            }
             _voiceScoreRetryCount++;
             if (_voiceScoreRetryCount <= 3) {
-                _setVoiceStatus('Say score... (' + _voiceScoreRetryCount + ')', '#e67e22');
+                _setVoiceStatus('Say score... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#e67e22');
             } else {
-                _setVoiceStatus('Say score... (' + _voiceScoreRetryCount + ')', '#999');
+                _setVoiceStatus('Say score... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#999');
             }
-            setTimeout(function() { _startScoreListening(); }, 10);
+            // SURGICAL FIX: Increased delay from 10ms to 500ms to prevent rapid beep/message flashing
+            setTimeout(function() { _startScoreListening(); }, 500);
         }
     };
 
@@ -6419,17 +6432,33 @@ function _applyVoiceScore(transcript) {
     var scoreStr = transcript.replace(/[^0-9]/g, '');
     var score = parseInt(scoreStr, 10);
 
+    // SURGICAL FIX: Check max retries BEFORE retrying — prevents infinite beep/message loop
+    if (_voiceScoreRetryCount >= _voiceScoreMaxRetries) {
+        _setVoiceStatus('Score not responding. Returning to exam number...', '#e74c3c');
+        _voiceCurrentIndex = null;
+        document.getElementById('voiceCurrentStudent').style.display = 'none';
+        _setVoiceHeard('');
+        _highlightRow(null);
+        // Return to exam number listening after a pause
+        setTimeout(function() {
+            if (_voiceCallActive) startVoiceExamNumber(true);
+        }, 1500);
+        return;
+    }
+
     if (isNaN(score) || scoreStr === '') {
         _voiceScoreRetryCount++;
-        _setVoiceStatus('Not heard. Say again... (' + _voiceScoreRetryCount + ')', '#e67e22');
-        setTimeout(function() { _startScoreListening(); }, 10);
+        _setVoiceStatus('Not heard. Say again... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#e67e22');
+        // SURGICAL FIX: Increased delay from 10ms to 500ms to prevent rapid message/beep flashing
+        setTimeout(function() { _startScoreListening(); }, 500);
         return;
     }
 
     if (score < 0 || score > 100) {
         _voiceScoreRetryCount++;
-        _setVoiceStatus('Out of range (0-100). Say again... (' + _voiceScoreRetryCount + ')', '#e67e22');
-        setTimeout(function() { _startScoreListening(); }, 10);
+        _setVoiceStatus('Out of range (0-100). Say again... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#e67e22');
+        // SURGICAL FIX: Increased delay from 10ms to 500ms to prevent rapid message/beep flashing
+        setTimeout(function() { _startScoreListening(); }, 500);
         return;
     }
 
