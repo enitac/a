@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Secondary Portal</title>
+  <title>Namitete Secondary Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -5864,6 +5864,9 @@ var _voiceMode = 'exam';        // 'exam' or 'score'
 var _voiceCallActive = false;   // Whether the Call Exam Number button has been activated (remains true until done)
 var _voiceScoreRetryCount = 0;  // Track retry attempts for score listening
 var _voiceScoreProcessed = false; // SURGICAL FIX: Track if onresult fired to prevent double-retry
+var _voiceScoreMaxRetries = 10; // Max retry attempts for score listening
+var _voiceLockedIndices = {};   // Row indices locked by voice entry this session (keyed by index) — only cleared on cancel
+var _suppressExamRestart = false; // Flag: when true, onend handler must NOT auto-restart exam listening
 var _sharedAudioCtx = null;    // Shared AudioContext to prevent double-sound glitches
 
 // --- Freeze scored rows during voice calling to prevent accidental overwrites ---
@@ -5875,12 +5878,23 @@ function _freezeScoredRows(keepActiveIndex) {
         var input = document.getElementById('score_' + i);
         if (!input) continue;
         if (i === keepActiveIndex) continue; // Keep current student's input editable
+        var shouldLock = false;
+        // Always lock voice-locked rows (scored during this voice session)
+        if (_voiceLockedIndices[i]) {
+            shouldLock = true;
+        }
         // If the input already has a score value, freeze it
         if (input.value && input.value.trim() !== '' && !input.readOnly) {
+            shouldLock = true;
+        }
+        if (shouldLock) {
             input.readOnly = true;
-            input.style.background = '#f5f5f5';
-            input.style.border = '1px solid #999';
-            input.style.color = '#555';
+            input.tabIndex = -1; // Prevent keyboard tab focus
+            input.style.background = '#e8e8e8';
+            input.style.border = '1px solid #bbb';
+            input.style.color = '#777';
+            input.style.cursor = 'not-allowed';
+            input.setAttribute('data-voicelocked', 'true');
         }
     }
 }
@@ -5899,9 +5913,13 @@ function _unfreezeAllRows() {
         if (isLocked) continue; // Keep locked subjects readonly
         if (input.readOnly) {
             input.readOnly = false;
+            input.tabIndex = 0; // Restore keyboard tab focus
             input.style.background = '';
             input.style.border = '1px solid #cc6600';
             input.style.color = '';
+            input.style.cursor = '';
+            input.removeAttribute('data-voicelocked');
+            input.onfocus = null;
         }
     }
 }
@@ -5934,7 +5952,7 @@ function _playSound1_CallExamNumber() {
     } catch (e) {}
 }
 
-// --- Sound 2: single dong — call score (shortened for faster transitions) ---
+// --- Sound 2: single dong — call score (ultra-short for faster transitions) ---
 function _playSound2_CallScore() {
     try {
         var ctx = _getAudioCtx();
@@ -5942,19 +5960,38 @@ function _playSound2_CallScore() {
         var gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.value = 1047;
-        gain.gain.setValueAtTime(0.4, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.08);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.35, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.06);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.12);
+        osc.stop(ctx.currentTime + 0.06);
     } catch (e) {}
 }
 
 
 
-// --- SURGICAL FIX: Cancel voice entry and reset buttons ---
+// --- Click blocker: prevents user from focusing/typing in voice-locked score inputs ---
+var _clickBlockerInstalled = false;
+function _installClickBlocker() {
+    if (_clickBlockerInstalled) return;
+    _clickBlockerInstalled = true;
+    document.addEventListener('click', function(e) {
+        var target = e.target;
+        if (target && target.getAttribute && target.getAttribute('data-voicelocked') === 'true') {
+            e.preventDefault();
+            e.stopPropagation();
+            target.blur();
+            _setVoiceStatus('Row locked. Click Cancel to unlock.', '#e67e22');
+        }
+    }, true);
+}
+
+function _removeClickBlocker() {
+    _clickBlockerInstalled = false;
+}
+
+// --- Cancel voice entry and reset buttons ---
 function _cancelVoiceEntry() {
     _stopRecognition();
     _voiceCallActive = false;
@@ -5962,8 +5999,11 @@ function _cancelVoiceEntry() {
     _voiceCurrentIndex = null;
     _voiceCurrentRow = null;
     _voiceScoreRetryCount = 0;
+    _voiceLockedIndices = {}; // Clear voice-locked indices — editing is possible again
     _showRetryButton(false);
     _highlightRow(null);
+    // Remove click blocker
+    _removeClickBlocker();
     // Unfreeze all scored rows so editing is possible again
     _unfreezeAllRows();
     document.getElementById('voiceExamBtn').style.background = '#8e44ad';
@@ -5971,18 +6011,18 @@ function _cancelVoiceEntry() {
     document.getElementById('voiceCurrentStudent').style.display = 'none';
     _setVoiceStatus('Voice entry cancelled. Click "Call Exam Number" to start again.', '#555');
     _setVoiceHeard('');
-
 }
 
 function _wordsToNumber(text) {
     // Convert spoken number words into digit strings for accurate matching
     var wordMap = {
-        'ZERO':'0','ONE':'1','TWO':'2','TOO':'2','TO':'2','THREE':'3','FREE':'3','FOUR':'4','FOR':'4',
-        'FIVE':'5','SIX':'6','SEVEN':'7','EIGHT':'8','ATE':'8','NINE':'9','TEN':'10','ELEVEN':'11',
+        'ZERO':'0','ZIRO':'0','ONE':'1','WON':'1','TWO':'2','TOO':'2','TO':'2','THREE':'3','FREE':'3','TREE':'3',
+        'FOUR':'4','FOR':'4','FORE':'4','FIVE':'5','SIX':'6','SEVEN':'7','SEVREN':'7','SEVIN':'7',
+        'EIGHT':'8','ATE':'8','AIGHT':'8','NINE':'9','TEN':'10','ELEVEN':'11',
         'TWELVE':'12','THIRTEEN':'13','FOURTEEN':'14','FIFTEEN':'15','SIXTEEN':'16','SEVENTEEN':'17',
-        'EIGHTEEN':'18','NINETEEN':'19','TWENTY':'20','THIRTY':'30','FORTY':'40','FIFTY':'50',
+        'EIGHTEEN':'18','NINETEEN':'19','TWENTY':'20','TWENNY':'20','THIRTY':'30','FORTY':'40','FIFTY':'50',
         'SIXTY':'60','SEVENTY':'70','EIGHTY':'80','NINETY':'90','HUNDRED':'100','THOUSAND':'1000'
-    };
+       };
     var input = text.toUpperCase().trim();
     // If it already contains digits, just strip non-digits and return
     if (/[0-9]/.test(input)) {
@@ -6115,8 +6155,8 @@ function _startScoreListening() {
     if (!scoreRecognition) return;
     _voiceRecognition = scoreRecognition;
 
-    var retryMsg = _voiceScoreRetryCount > 0 ? ' (Retry ' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')' : '';
-    _setVoiceStatus('Listening for score... Speak the number now.' + retryMsg, '#e67e22');
+    var retryMsg = _voiceScoreRetryCount > 0 ? ' (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')' : '';
+    _setVoiceStatus('Say score...' + retryMsg, '#e67e22');
 
     scoreRecognition.onresult = function(event) {
         // SURGICAL FIX: Mark that onresult fired so onend doesn't double-retry
@@ -6149,25 +6189,45 @@ function _startScoreListening() {
 
     scoreRecognition.onerror = function(event) {
         console.warn('Score speech error:', event.error);
-        // Don't retry here — let onend handle retries to avoid double-retry bug
         if (event.error === 'not-allowed') {
             _voiceCallActive = false;
             _unfreezeAllRows(); // Unfreeze rows since calling is effectively stopped
             _setVoiceStatus('Microphone access denied. Allow mic access in browser settings.', '#e74c3c');
             _showRetryButton(true);
-        } else {
-            _setVoiceStatus('Error: ' + event.error + ', retrying...', '#e67e22');
         }
+        // For 'no-speech', 'aborted', and other errors, stay silent — onend handles retry automatically
+        // Mic stays open, session continues uninterrupted
     };
 
     scoreRecognition.onend = function() {
-        _voiceRecognition = null;
+        // Only null out _voiceRecognition if it still points to THIS instance
+        // Prevents race condition when a newer recognition was already started
+        if (_voiceRecognition === scoreRecognition) {
+            _voiceRecognition = null;
+        }
         // SURGICAL FIX: Only retry if onresult NEVER fired (no speech detected at all)
         // If onresult did fire, _applyVoiceScore handles retrying — prevents double-retry race condition
         if (_voiceMode === 'score' && _voiceCallActive && !_voiceScoreProcessed) {
+            // SURGICAL FIX: Check max retries — show "Score not responding" and return to exam mode
+            if (_voiceScoreRetryCount >= _voiceScoreMaxRetries) {
+                _setVoiceStatus('Score not responding. Returning to exam number...', '#e74c3c');
+                _voiceCurrentIndex = null;
+                document.getElementById('voiceCurrentStudent').style.display = 'none';
+                _setVoiceHeard('');
+                _highlightRow(null);
+                setTimeout(function() {
+                    if (_voiceCallActive) startVoiceExamNumber(true);
+                }, 1500);
+                return;
+            }
             _voiceScoreRetryCount++;
-            _setVoiceStatus('No score heard yet. Still listening... (Attempt ' + _voiceScoreRetryCount + ')', '#e67e22');
-            setTimeout(function() { _startScoreListening(); }, 10);
+            if (_voiceScoreRetryCount <= 3) {
+                _setVoiceStatus('Say score... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#e67e22');
+            } else {
+                _setVoiceStatus('Say score... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#999');
+            }
+            // SURGICAL FIX: Increased delay from 10ms to 500ms to prevent rapid beep/message flashing
+            setTimeout(function() { _startScoreListening(); }, 500);
         }
     };
 
@@ -6194,10 +6254,12 @@ function startVoiceExamNumber(silent) {
     }
 
     _stopRecognition();
-    _voiceCallActive = true; // SURGICAL FIX: Mark as active — button stays active until done
+    _voiceCallActive = true; // Mark as active — button stays active until done
     _voiceMode = 'exam';
     // Freeze rows that already have scores to prevent accidental overwrites
     _freezeScoredRows(null);
+    // Add global click blocker on voice-locked inputs
+    _installClickBlocker();
     var recognition = _getSpeechRecognition();
     if (!recognition) return;
     _voiceRecognition = recognition;
@@ -6240,21 +6302,27 @@ function startVoiceExamNumber(silent) {
 
     recognition.onerror = function(event) {
         console.warn('Speech error:', event.error);
-        if (event.error === 'no-speech') {
-            _setVoiceStatus('No speech detected. Try again.', '#e74c3c');
-        } else if (event.error === 'not-allowed') {
+        if (event.error === 'not-allowed') {
             _setVoiceStatus('Microphone access denied. Allow mic access in browser settings.', '#e74c3c');
-        } else {
-            _setVoiceStatus('Error: ' + event.error + '. Try again.', '#e74c3c');
+        } else if (event.error === 'audio-capture') {
+            _setVoiceStatus('No microphone found. Check your device.', '#e67e22');
+        } else if (event.error === 'network') {
+            _setVoiceStatus('Network error. Still listening...', '#e67e22');
         }
-        // SURGICAL FIX: Keep button active on error — do not reset _voiceCallActive
+        // For 'no-speech' and 'aborted', stay silent — onend restarts automatically
+        // Keep button active on ALL errors — do not reset _voiceCallActive
     };
 
     recognition.onend = function() {
-        _voiceRecognition = null;
-        // SURGICAL FIX: Keep listening for exam number until one is matched — never stop
-        if (_voiceMode === 'exam' && _voiceCallActive) {
-            _setVoiceStatus('No exam number heard yet. Still listening...', '#8e44ad');
+        // Only null out _voiceRecognition if it still points to THIS instance
+        // Prevents race condition when a newer recognition was already started
+        if (_voiceRecognition === recognition) {
+            _voiceRecognition = null;
+        }
+        // Keep listening for exam number — mic stays open until cancelled
+        // BUT do NOT restart if _suppressExamRestart is true (locked-row timeout already handling it)
+        if (_voiceMode === 'exam' && _voiceCallActive && !_suppressExamRestart) {
+            // Muted: don't show repetitive "still listening" messages
             setTimeout(function() { startVoiceExamNumber(true); }, 10);
         }
     };
@@ -6300,7 +6368,7 @@ function _matchExamNumber(transcript, form, subject) {
     }
 
     if (matchIndex === -1) {
-        _setVoiceStatus('Exam number "' + transcript + '" not found. Try again.', '#e74c3c');
+        _setVoiceStatus('Not found. Say again.', '#e74c3c');
         _highlightRow(null);
         return;
     }
@@ -6310,26 +6378,43 @@ function _matchExamNumber(transcript, form, subject) {
     _voiceCurrentIndex = matchIndex;
     _voiceCurrentRow = matchIndex;
     _highlightRow(matchIndex);
-    // Unfreeze the matched student's score input so voice can enter/edit the score
+
     var matchedInput = document.getElementById('score_' + matchIndex);
+
+    // --- LOCK CHECK: If this row already has a score, it is locked — skip and keep listening ---
+    if (matchedInput && matchedInput.value && matchedInput.value.trim() !== '') {
+        _setVoiceStatus(student['Exam Number'] + ' done (' + matchedInput.value.trim() + '). Next...', '#999');
+        // Prevent onend from auto-restarting — WE will handle the restart after the delay
+        _suppressExamRestart = true;
+        setTimeout(function() {
+            _highlightRow(null);
+            _suppressExamRestart = false;
+            if (_voiceCallActive) startVoiceExamNumber(true);
+        }, 800); // Faster skip delay
+        return;
+    }
+
+    // Unfreeze the matched student's score input so voice can enter/edit the score
     if (matchedInput) {
         matchedInput.readOnly = false;
+        matchedInput.tabIndex = 0; // Restore keyboard focus
         matchedInput.style.background = '';
         matchedInput.style.border = '1px solid #cc6600';
         matchedInput.style.color = '';
+        matchedInput.style.cursor = '';
+        matchedInput.removeAttribute('data-voicelocked');
+        matchedInput.onfocus = null; // Remove focus blocker
     }
 
     var currentStudentEl = document.getElementById('voiceCurrentStudent');
     currentStudentEl.textContent = student['Exam Number'] + ' — ' + (student["STUDENT'S NAME"] || 'Unknown');
     currentStudentEl.style.display = 'block';
 
-    _setVoiceStatus('Student found! ' + student['Exam Number'] + ' — ' + (student["STUDENT'S NAME"] || 'Unknown'), '#2ecc71');
+    _setVoiceStatus('Calling score for ' + student['Exam Number'], '#2ecc71');
+    _setVoiceHeard('');
 
-    // SURGICAL FIX: Play Sound 2 to signal "Call Score"
+    // Play Sound 2 to signal "Call Score"
     _playSound2_CallScore();
-
-    // SURGICAL FIX: Do NOT focus the score input during voice entry — it triggers the phone keyboard popup.
-    // The voice system sets the score programmatically via _applyVoiceScore(), so focus is unnecessary.
 
     // FAST TRANSITION: Immediately start listening for score (no delay)
     _voiceScoreRetryCount = 0;
@@ -6347,19 +6432,33 @@ function _applyVoiceScore(transcript) {
     var scoreStr = transcript.replace(/[^0-9]/g, '');
     var score = parseInt(scoreStr, 10);
 
+    // SURGICAL FIX: Check max retries BEFORE retrying — prevents infinite beep/message loop
+    if (_voiceScoreRetryCount >= _voiceScoreMaxRetries) {
+        _setVoiceStatus('Score not responding. Returning to exam number...', '#e74c3c');
+        _voiceCurrentIndex = null;
+        document.getElementById('voiceCurrentStudent').style.display = 'none';
+        _setVoiceHeard('');
+        _highlightRow(null);
+        // Return to exam number listening after a pause
+        setTimeout(function() {
+            if (_voiceCallActive) startVoiceExamNumber(true);
+        }, 1500);
+        return;
+    }
+
     if (isNaN(score) || scoreStr === '') {
         _voiceScoreRetryCount++;
-        // SURGICAL FIX: Never give up — stay on this row until a valid score is heard
-        _setVoiceStatus('Could not understand "' + transcript + '". Still listening for score... (Attempt ' + _voiceScoreRetryCount + ')', '#e67e22');
-        setTimeout(function() { _startScoreListening(); }, 10);
+        _setVoiceStatus('Not heard. Say again... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#e67e22');
+        // SURGICAL FIX: Increased delay from 10ms to 500ms to prevent rapid message/beep flashing
+        setTimeout(function() { _startScoreListening(); }, 500);
         return;
     }
 
     if (score < 0 || score > 100) {
         _voiceScoreRetryCount++;
-        // SURGICAL FIX: Never give up — stay on this row until a valid score is heard
-        _setVoiceStatus('Invalid score (' + score + '). Must be 0-100. Still listening... (Attempt ' + _voiceScoreRetryCount + ')', '#e67e22');
-        setTimeout(function() { _startScoreListening(); }, 10);
+        _setVoiceStatus('Out of range (0-100). Say again... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#e67e22');
+        // SURGICAL FIX: Increased delay from 10ms to 500ms to prevent rapid message/beep flashing
+        setTimeout(function() { _startScoreListening(); }, 500);
         return;
     }
 
@@ -6376,7 +6475,10 @@ function _applyVoiceScore(transcript) {
         updateStudentScore(form, _voiceCurrentIndex, subject, String(score));
     }
 
-    // Freeze the just-scored row so it can't be accidentally overwritten by misheard exam numbers
+    // Mark this row as voice-locked so it cannot be re-accessed until calling is cancelled
+    _voiceLockedIndices[_voiceCurrentIndex] = true;
+
+    // Lock the just-scored row so it can't be accidentally overwritten by misheard exam numbers
     var justScoredInput = document.getElementById('score_' + _voiceCurrentIndex);
     if (justScoredInput && justScoredInput.value && justScoredInput.value.trim() !== '') {
         var form_check = document.getElementById('dataClassSelect').value;
@@ -6384,17 +6486,24 @@ function _applyVoiceScore(transcript) {
         var isLocked = currentConfig && currentConfig.locks && currentConfig.locks[form_check] && currentConfig.locks[form_check][subject_check];
         if (!isLocked) {
             justScoredInput.readOnly = true;
-            justScoredInput.style.background = '#f5f5f5';
-            justScoredInput.style.border = '1px solid #999';
-            justScoredInput.style.color = '#555';
+            justScoredInput.tabIndex = -1; // Prevent keyboard tab focus
+            justScoredInput.style.background = '#e8e8e8';
+            justScoredInput.style.border = '1px solid #bbb';
+            justScoredInput.style.color = '#777';
+            justScoredInput.style.cursor = 'not-allowed';
+            justScoredInput.setAttribute('data-voicelocked', 'true');
+            // Block focus events on locked rows — user cannot click into them
+            justScoredInput.onfocus = function() { this.blur(); };
         }
     }
 
-    _setVoiceStatus('Score ' + score + ' entered for ' + (currentClassData[form][_voiceCurrentIndex]['Exam Number'] || '') + '. Ready for next student.', '#2ecc71');
+    // Brief success status only
+    _setVoiceStatus(score + ' ✓', '#2ecc71');
 
     // Auto-advance: prepare for next student
     _voiceCurrentIndex = null;
     document.getElementById('voiceCurrentStudent').style.display = 'none';
+    _setVoiceHeard('');
 
     // FAST TRANSITION: Immediately loop back to listening for next exam number
     // The call button stays active (_voiceCallActive remains true) since calling is not done
