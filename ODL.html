@@ -868,6 +868,17 @@ function saveSelectedSubjectsToRepo() {
         animation: voicePulse 1.2s infinite;
     }
 
+    /* VOICE MODE: Hide all table rows by default, only show the active student row */
+    #studentMarksPanel._voiceMode tbody tr {
+        display: none !important;
+    }
+    #studentMarksPanel._voiceMode tbody tr._voiceActiveRow {
+        display: table-row !important;
+    }
+    #studentMarksPanel._voiceMode thead {
+        display: none !important;
+    }
+
     /* Mobile Adjustments */
     @media (max-width: 480px) {
         body { padding: 10px; }
@@ -5835,6 +5846,7 @@ function filterStudentMarks(){
 
 // Toggle to hide/unhide the voice score entry panel
 var _voicePanelVisible = true;
+var _voiceModeActive = false; // Whether voice mode (student list hidden, single-row popup) is active
 function toggleVoicePanel() {
     var panel = document.getElementById('voiceControlPanel');
     var btn = document.getElementById('voiceToggleBtn');
@@ -5847,12 +5859,44 @@ function toggleVoicePanel() {
         if (_voiceCallActive) {
             _cancelVoiceEntry();
         }
+        // SURGICAL FIX: Enter voice mode — hide student list rows
+        _voiceModeActive = true;
+        _enterVoiceMode();
     } else {
         panel.style.display = 'block';
         btn.textContent = 'Hide Voice Entry';
         btn.style.background = '#8e44ad';
+        // SURGICAL FIX: Exit voice mode — show all student list rows
+        _voiceModeActive = false;
+        _exitVoiceMode();
     }
     _voicePanelVisible = !_voicePanelVisible;
+}
+
+// --- VOICE MODE: Show only one student row at a time ---
+function _enterVoiceMode() {
+    var panel = document.getElementById('studentMarksPanel');
+    if (panel) panel.classList.add('_voiceMode');
+    // Hide all rows initially
+    var tbody = document.getElementById('dataEntryTableBody');
+    if (!tbody) return;
+    var rows = tbody.getElementsByTagName('tr');
+    for (var i = 0; i < rows.length; i++) {
+        rows[i].classList.remove('_voiceActiveRow');
+    }
+}
+
+function _exitVoiceMode() {
+    var panel = document.getElementById('studentMarksPanel');
+    if (panel) panel.classList.remove('_voiceMode');
+    // Show all rows, remove active class
+    var tbody = document.getElementById('dataEntryTableBody');
+    if (!tbody) return;
+    var rows = tbody.getElementsByTagName('tr');
+    for (var i = 0; i < rows.length; i++) {
+        rows[i].classList.remove('_voiceActiveRow');
+        rows[i].style.background = '';
+    }
 }
 // Uses Web Speech API to call out exam numbers and scores
 // ============================================================
@@ -6011,6 +6055,10 @@ function _cancelVoiceEntry() {
     document.getElementById('voiceCurrentStudent').style.display = 'none';
     _setVoiceStatus('Voice entry cancelled. Click "Call Exam Number" to start again.', '#555');
     _setVoiceHeard('');
+    // SURGICAL FIX: Re-enter voice mode to hide all rows after cancel
+    if (_voiceModeActive) {
+        _enterVoiceMode();
+    }
 }
 
 function _wordsToNumber(text) {
@@ -6022,7 +6070,7 @@ function _wordsToNumber(text) {
         'TWELVE':'12','THIRTEEN':'13','FOURTEEN':'14','FIFTEEN':'15','SIXTEEN':'16','SEVENTEEN':'17',
         'EIGHTEEN':'18','NINETEEN':'19','TWENTY':'20','TWENNY':'20','THIRTY':'30','FORTY':'40','FIFTY':'50',
         'SIXTY':'60','SEVENTY':'70','EIGHTY':'80','NINETY':'90','HUNDRED':'100','THOUSAND':'1000'
-       };
+    };
     var input = text.toUpperCase().trim();
     // If it already contains digits, just strip non-digits and return
     if (/[0-9]/.test(input)) {
@@ -6114,16 +6162,21 @@ function _setVoiceHeard(msg) {
 }
 
 function _highlightRow(index) {
-    // Clear previous highlight
     var tbody = document.getElementById('dataEntryTableBody');
     var rows = tbody ? tbody.getElementsByTagName('tr') : [];
+    // Remove highlight and active class from all rows
     for (var i = 0; i < rows.length; i++) {
         rows[i].style.background = '';
+        rows[i].classList.remove('_voiceActiveRow');
     }
     if (index === null || index < 0 || !rows[index]) return;
     // Highlight new row and scroll into view
     rows[index].style.background = '#d4edda';
     rows[index].scrollIntoView({ behavior: 'instant', block: 'center' });
+    // SURGICAL FIX: In voice mode, only show the matched student row
+    if (_voiceModeActive) {
+        rows[index].classList.add('_voiceActiveRow');
+    }
 }
 
 function _stopRecognition() {
