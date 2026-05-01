@@ -5863,7 +5863,7 @@ var _voiceRecognition = null;   // Active SpeechRecognition instance
 var _voiceMode = 'exam';        // 'exam' or 'score'
 var _voiceCallActive = false;   // Whether the Call Exam Number button has been activated (remains true until done)
 var _voiceScoreRetryCount = 0;  // Track retry attempts for score listening
-var _voiceScoreMaxRetries = 3;  // Maximum retry attempts before giving up
+var _voiceScoreProcessed = false; // SURGICAL FIX: Track if onresult fired to prevent double-retry
 var _sharedAudioCtx = null;    // Shared AudioContext to prevent double-sound glitches
 
 function _getAudioCtx() {
@@ -6068,6 +6068,7 @@ function _manualRetryScore() {
 // --- Helper: start listening for score with auto-retry ---
 function _startScoreListening() {
     _voiceMode = 'score';
+    _voiceScoreProcessed = false; // SURGICAL FIX: Reset flag for each new listening session
     var scoreRecognition = _getSpeechRecognition();
     if (!scoreRecognition) return;
     _voiceRecognition = scoreRecognition;
@@ -6076,6 +6077,8 @@ function _startScoreListening() {
     _setVoiceStatus('Listening for score... Speak the number now.' + retryMsg, '#e67e22');
 
     scoreRecognition.onresult = function(event) {
+        // SURGICAL FIX: Mark that onresult fired so onend doesn't double-retry
+        _voiceScoreProcessed = true;
         // Try all alternatives to find one that contains a number
         var bestTranscript = '';
         var bestNumeric = '';
@@ -6098,7 +6101,7 @@ function _startScoreListening() {
             bestNumeric = converted || bestTranscript;
         }
         _setVoiceHeard(bestTranscript);
-        _voiceScoreRetryCount = 0; // Reset on successful recognition
+        // SURGICAL FIX: Removed _voiceScoreRetryCount = 0 from here — only reset on valid score
         _applyVoiceScore(bestNumeric);
     };
 
@@ -6116,8 +6119,9 @@ function _startScoreListening() {
 
     scoreRecognition.onend = function() {
         _voiceRecognition = null;
-        // SURGICAL FIX: Never give up — keep retrying until a valid score is heard
-        if (_voiceMode === 'score' && _voiceCallActive) {
+        // SURGICAL FIX: Only retry if onresult NEVER fired (no speech detected at all)
+        // If onresult did fire, _applyVoiceScore handles retrying — prevents double-retry race condition
+        if (_voiceMode === 'score' && _voiceCallActive && !_voiceScoreProcessed) {
             _voiceScoreRetryCount++;
             _setVoiceStatus('No score heard yet. Still listening... (Attempt ' + _voiceScoreRetryCount + ')', '#e67e22');
             setTimeout(function() { _startScoreListening(); }, 10);
@@ -6203,6 +6207,11 @@ function startVoiceExamNumber(silent) {
 
     recognition.onend = function() {
         _voiceRecognition = null;
+        // SURGICAL FIX: Keep listening for exam number until one is matched — never stop
+        if (_voiceMode === 'exam' && _voiceCallActive) {
+            _setVoiceStatus('No exam number heard yet. Still listening...', '#8e44ad');
+            setTimeout(function() { startVoiceExamNumber(true); }, 10);
+        }
     };
 
     recognition.start();
@@ -6287,15 +6296,15 @@ function _applyVoiceScore(transcript) {
 
     if (isNaN(score) || scoreStr === '') {
         _voiceScoreRetryCount++;
-        // SURGICAL FIX: Never give up — keep retrying until a valid score is heard
-        _setVoiceStatus('Could not understand "' + transcript + '". Still listening... (Attempt ' + _voiceScoreRetryCount + ')', '#e67e22');
+        // SURGICAL FIX: Never give up — stay on this row until a valid score is heard
+        _setVoiceStatus('Could not understand "' + transcript + '". Still listening for score... (Attempt ' + _voiceScoreRetryCount + ')', '#e67e22');
         setTimeout(function() { _startScoreListening(); }, 10);
         return;
     }
 
     if (score < 0 || score > 100) {
         _voiceScoreRetryCount++;
-        // SURGICAL FIX: Never give up — keep retrying until a valid score is heard
+        // SURGICAL FIX: Never give up — stay on this row until a valid score is heard
         _setVoiceStatus('Invalid score (' + score + '). Must be 0-100. Still listening... (Attempt ' + _voiceScoreRetryCount + ')', '#e67e22');
         setTimeout(function() { _startScoreListening(); }, 10);
         return;
@@ -6303,6 +6312,9 @@ function _applyVoiceScore(transcript) {
 
     var form = document.getElementById('dataClassSelect').value;
     var subject = document.getElementById('dataSubjectSelect').value;
+
+    // SURGICAL FIX: Reset retry count only when a valid score is about to be entered
+    _voiceScoreRetryCount = 0;
 
     // Set the score in the input
     var scoreInput = document.getElementById('score_' + _voiceCurrentIndex);
