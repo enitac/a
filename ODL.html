@@ -817,7 +817,7 @@ function saveSelectedSubjectsToRepo() {
     }
 
     #gradeKeyPlaceholder {
-        width: 100%;
+        width: 50%;
         text-align: left;
     }
 
@@ -1037,13 +1037,6 @@ function saveSelectedSubjectsToRepo() {
             background: white !important;
         }
 
-        /* SURGICAL FIX: Grade key table beside results table — grid layout for print */
-        #progressReport[style*="block"] {
-            display: grid !important;
-            grid-template-columns: 35% 65% !important;
-            grid-auto-flow: dense !important;
-        }
-
         #progressReport[style*="block"] *,
         #briefReport[style*="block"] *,
         #progressReport[style*="block"] .table-wrapper,
@@ -1137,13 +1130,6 @@ function saveSelectedSubjectsToRepo() {
 
         #batchPrintArea > .progressReportClone {
             transform-origin: top center !important;
-        }
-
-        /* SURGICAL FIX: Grade key beside results table — grid layout for batch print clones */
-        #batchPrintArea > .progressReportClone {
-            display: grid !important;
-            grid-template-columns: 35% 65% !important;
-            grid-auto-flow: dense !important;
         }
 
         #batchPrintArea .back-btn,
@@ -1242,7 +1228,7 @@ function saveSelectedSubjectsToRepo() {
         }
 
         #batchPrintArea #gradeKeyPlaceholder {
-            width: 100% !important;
+            width: 50% !important;
             text-align: left !important;
         }
 
@@ -1296,33 +1282,6 @@ function saveSelectedSubjectsToRepo() {
 
         #batchPrintArea .info-row span {
             display: inline !important;
-        }
-
-        /* SURGICAL FIX: Grade key placement in print grid */
-        /* All direct children span full width by default */
-        #progressReport[style*="block"] > *,
-        #batchPrintArea > .progressReportClone > * {
-            grid-column: 1 / -1 !important;
-        }
-        /* Hide stray <br> tags in print grid */
-        #progressReport[style*="block"] > br,
-        #batchPrintArea > .progressReportClone > br {
-            display: none !important;
-        }
-        /* Grade key: left column, top-aligned */
-        #progressReport[style*="block"] > #reportGradeKeySection,
-        #batchPrintArea > .progressReportClone > #reportGradeKeySection {
-            grid-column: 1 !important;
-            align-self: start !important;
-            margin-top: 0 !important;
-            margin-right: 8px !important;
-        }
-        /* Results table wrapper: right column */
-        #progressReport[style*="block"] > .table-wrapper,
-        #batchPrintArea > .progressReportClone > .table-wrapper {
-            grid-column: 2 !important;
-            align-self: start !important;
-            margin-top: 0 !important;
         }
     }
 
