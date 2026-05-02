@@ -1454,6 +1454,26 @@ function saveSelectedSubjectsToRepo() {
     }
 }
 
+/* SURGICAL FIX: Progress report results table horizontal scroll in portrait mode on mobile */
+@media (max-width: 480px) and (orientation: portrait) {
+    #progressReport .table-wrapper {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        width: 100% !important;
+    }
+    #progressReport #resultsTable {
+        table-layout: auto !important;
+        width: max-content !important;
+        min-width: 100%;
+    }
+    #progressReport #resultsTable th,
+    #progressReport #resultsTable td {
+        white-space: nowrap !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+}
+
 /* Landscape mobile horizontal scroll for mark/grade sheets */
 @media (max-width: 900px) and (orientation: landscape) {
     #scoreSheetView .table-wrapper,
@@ -1737,8 +1757,12 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
        style="background-color: #f8f9fa; color: #333; border: 1px solid #ddd; padding: 10px; border-radius: 5px; font-weight: bold;">
     <input type="text" id="dataSearchInput" placeholder="Search by name or exam number..." onkeyup="filterStudentMarks()" style="max-width:400px;margin-top:8px;">
 
+    <!-- Voice Score Entry Toggle Button -->
+    <button id="voiceToggleBtn" onclick="toggleVoicePanel()" type="button" style="background:#8e44ad;max-width:280px;display:flex;align-items:center;justify-content:center;gap:6px;margin:12px auto 0 auto;padding:10px;font-size:0.95em;color:#fff;">
+        <span style="font-size:1.2em;">&#127908;</span> Show Voice Score Entry
+    </button>
     <!-- Voice Score Entry -->
-    <div id="voiceControlPanel" style="margin-top:15px;padding:12px;border:2px dashed #8e44ad;border-radius:10px;background:#fdf5ff;">
+    <div id="voiceControlPanel" style="margin-top:15px;padding:12px;border:2px dashed #8e44ad;border-radius:10px;background:#fdf5ff;display:none;">
         <p style="font-size:0.95em;color:#8e44ad;font-weight:700;margin-bottom:8px;">Voice Score Entry</p>
         <p id="voiceStatus" style="font-size:0.82em;color:#555;margin-bottom:10px;">Click the mic button and call out the exam number.</p>
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
@@ -2103,7 +2127,8 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
                         <th style="border:1px solid black;padding:4px 3px;">SCORE</th>
                         <th style="border:1px solid black;padding:4px 3px;">GRADE</th>
                         <th style="border:1px solid black;padding:4px 3px;">POSITION</th>
-                        <th style="border:1px solid black;padding:4px 3px;">STATUS</th>
+                        <th style="border:1px solid black;padding:4px 3px;">REMARKS</th>
+                        <th style="border:1px solid black;padding:4px 3px;">TEACHER</th>
                     </tr>
                 </thead>
                 <tbody id="archiveResultsBody"></tbody>
@@ -4397,11 +4422,13 @@ function viewArchivedStudent(index) {
         const score = parseInt(rawScore);
         let grade = '-';
         let position = '-';
+        let remark = '-';
         let status = '-';
 
         if (!isNaN(score)) {
             const gr = getGradeAndRemark(form, score);
             grade = gr.grade;
+            remark = gr.remark;
             subjectCount++;
 
             // Position
@@ -4419,13 +4446,17 @@ function viewArchivedStudent(index) {
             if (status === 'Pass') passCount++;
         }
 
+        // Teacher from config if available
+        const teacher = (currentConfig && currentConfig.teachers && currentConfig.teachers[form] && currentConfig.teachers[form][sub]) ? currentConfig.teachers[form][sub] : '';
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td style="border:1px solid black;padding:4px 3px;text-align:left;">${sub}</td>
             <td style="border:1px solid black;padding:4px 3px;text-align:center;">${rawScore}</td>
             <td style="border:1px solid black;padding:4px 3px;text-align:center;">${grade}</td>
             <td style="border:1px solid black;padding:4px 3px;text-align:center;">${position}</td>
-            <td style="border:1px solid black;padding:4px 3px;text-align:center;color:${status === 'Pass' ? 'green' : (status === 'Fail' ? 'red' : 'black')};font-weight:bold;">${status}</td>
+            <td style="border:1px solid black;padding:4px 3px;text-align:center;">${remark}</td>
+            <td style="border:1px solid black;padding:4px 3px;text-align:center;">${teacher}</td>
         `;
         tbody.appendChild(row);
     });
@@ -5659,8 +5690,16 @@ async function showStudentMarksList() {
         
         const snVal = s["SN"] || '';
         const sneVisible = currentConfig && currentConfig.sneColumnVisible !== false;
+        const isVoiceLocked = _voiceLockedScores.has(i);
         const row = document.createElement('tr');
-        const inputDisabled = isLocked ? 'readonly style="width:80px;padding:6px;text-align:center;border:1px solid #e74c3c;border-radius:4px;background:#f5f5f5;color:#999;"' : 'oninput="updateStudentScore(\'' + form + '\', ' + i + ', \'' + subject + '\', this.value)" style="width:80px;padding:6px;text-align:center;border:1px solid #cc6600;border-radius:4px;"';
+        let inputAttrs;
+        if (isLocked) {
+            inputAttrs = 'readonly style="width:80px;padding:6px;text-align:center;border:1px solid #e74c3c;border-radius:4px;background:#f5f5f5;color:#999;"';
+        } else if (isVoiceLocked) {
+            inputAttrs = 'readonly style="width:80px;padding:6px;text-align:center;border:1px solid #8e44ad;border-radius:4px;background:#f3e5f5;color:#4a148c;font-weight:700;"';
+        } else {
+            inputAttrs = 'oninput="updateStudentScore(\'' + form + '\', ' + i + ', \'' + subject + '\', this.value)" style="width:80px;padding:6px;text-align:center;border:1px solid #cc6600;border-radius:4px;"';
+        }
         row.innerHTML = `
             <td style="border:1px solid #cc6600;padding:8px;text-align:center;">${examNo}</td>
             <td style="border:1px solid #cc6600;padding:8px;text-align:left;">${name}</td>
@@ -5677,7 +5716,7 @@ async function showStudentMarksList() {
                 <input type="text" 
                        id="score_${i}" 
                        value="${val}" 
-                       ${inputDisabled}
+                       ${inputAttrs}
                        placeholder=" ">
             </td>
         `;
@@ -5704,8 +5743,11 @@ async function showStudentMarksList() {
     // Apply SNE column visibility to header
     applySNEColumnToTable();
 
-    // Auto-activate voice mic now that students are loaded
-    setTimeout(function() { startVoiceExamNumber(true); }, 100);
+    // Auto-activate voice mic only if voice panel is visible
+    var voicePanel = document.getElementById('voiceControlPanel');
+    if (voicePanel && voicePanel.style.display !== 'none') {
+        setTimeout(function() { startVoiceExamNumber(true); }, 100);
+    }
 }
 
 function updateStudentScore(form, index, subject, value) {
@@ -5756,6 +5798,7 @@ var _voiceMode = 'exam';        // 'exam' or 'score'
 var _voiceCallActive = false;   // Whether the Call Exam Number button has been activated (remains true until done)
 var _voiceScoreRetryCount = 0;  // Track retry attempts for score listening
 var _voiceScoreMaxRetries = 3;  // Maximum retry attempts before giving up
+var _voiceLockedScores = new Set(); // Tracks indices of scores entered by voice (locked against overwrite)
 var _sharedAudioCtx = null;    // Shared AudioContext to prevent double-sound glitches
 
 function _getAudioCtx() {
@@ -5822,6 +5865,21 @@ function _cancelVoiceEntry() {
     _setVoiceStatus('Voice entry cancelled. Click "Call Exam Number" to start again.', '#555');
     _setVoiceHeard('');
 
+}
+
+// --- SURGICAL FIX: Toggle voice panel visibility ---
+function toggleVoicePanel() {
+    var panel = document.getElementById('voiceControlPanel');
+    var btn = document.getElementById('voiceToggleBtn');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        btn.innerHTML = '<span style="font-size:1.2em;">&#128064;</span> Hide Voice Score Entry';
+        _setVoiceStatus('Click the mic button and call out the exam number.', '#555');
+    } else {
+        panel.style.display = 'none';
+        btn.innerHTML = '<span style="font-size:1.2em;">&#127908;</span> Show Voice Score Entry';
+        _cancelVoiceEntry();
+    }
 }
 
 function _wordsToNumber(text) {
@@ -6211,6 +6269,12 @@ function _applyVoiceScore(transcript) {
     var scoreInput = document.getElementById('score_' + _voiceCurrentIndex);
     if (scoreInput && !scoreInput.readOnly) {
         scoreInput.value = score;
+        scoreInput.readOnly = true;
+        scoreInput.style.border = '1px solid #8e44ad';
+        scoreInput.style.background = '#f3e5f5';
+        scoreInput.style.color = '#4a148c';
+        scoreInput.style.fontWeight = '700';
+        _voiceLockedScores.add(_voiceCurrentIndex);
         updateStudentScore(form, _voiceCurrentIndex, subject, String(score));
     }
 
