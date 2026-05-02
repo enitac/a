@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Namitete Secondary Portal</title>
+  <title>Secondary Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -708,25 +708,7 @@ function saveSelectedSubjectsToRepo() {
     button:active { transform: scale(0.99); }
 
     /* Tables */
-    /* SURGICAL FIX: Progress report table at 50% width so it does not reach the far right end */
-    #progressReport #resultsTable {
-        width: 50%;
-        margin: 0 auto;
-        border-collapse: collapse;
-        font-size: 0.7em;
-        border: 1px solid black;
-        table-layout: fixed;
-    }
-
-    /* SURGICAL FIX: Progress report table-wrapper auto-width so it centers the narrower table */
-    #progressReport .table-wrapper {
-        overflow-x: visible;
-        width: auto;
-        margin-top: 15px;
-        text-align: center;
-        -webkit-overflow-scrolling: touch;
-    }
-
+    #progressReport #resultsTable,
     #gradesTable,
     #analysisTable,
     #scoresTable,
@@ -804,10 +786,12 @@ function saveSelectedSubjectsToRepo() {
         width: 95%;
         max-width: 650px;
         min-height: auto;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1), 0 0 0 3px black, 0 0 0 5px white, 0 0 0 6px black;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
         margin: 20px auto;
         border: 3px double black;
         border-radius: 12px;
+        outline: 3px double black;
+        outline-offset: 3px;
     }
 
     /* On-screen batch print clone: rounded frame */
@@ -816,7 +800,7 @@ function saveSelectedSubjectsToRepo() {
         color: black;
         border: 3px double black;
         border-radius: 12px;
-        box-shadow: 0 0 0 3px black, 0 0 0 5px white, 0 0 0 6px black, 0 6px 20px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 0 0 3px black, 0 6px 20px rgba(0, 0, 0, 0.1);
     }
 
     #reportDetails div { color: black; }
@@ -840,18 +824,17 @@ function saveSelectedSubjectsToRepo() {
     }
 
     #reportGradeKeyTable {
-        width: 100%;
+        width: 50%;
         border-collapse: collapse;
         font-size: 8pt;
         border: 1px solid black;
         margin: 0;
-        text-align: left;
     }
 
     #reportGradeKeyTable th, #reportGradeKeyTable td {
         border: 1px solid black;
         padding: 2px 4px;
-        text-align: left;
+        text-align: center;
         background-color: white;
         vertical-align: middle;
         color: black;
@@ -891,29 +874,7 @@ function saveSelectedSubjectsToRepo() {
         body { padding: 10px; }
         .page { padding: 15px; width: 98%; }
         #progressReport, #briefReport { padding: 20px 10px; width: 98%; }
-
-        /* SURGICAL FIX: Full-width table on mobile with text wrapping — no cut-off words */
-        #progressReport #resultsTable {
-            width: 100% !important;
-            margin: 0 !important;
-            table-layout: auto !important;
-            font-size: 8pt !important;
-        }
-        #progressReport .table-wrapper {
-            width: 100% !important;
-            overflow-x: auto !important;
-            text-align: left !important;
-            -webkit-overflow-scrolling: touch;
-        }
-        #progressReport #resultsTable th,
-        #progressReport #resultsTable td {
-            white-space: normal !important;
-            overflow: visible !important;
-            text-overflow: clip !important;
-            word-wrap: break-word !important;
-            padding: 5px 3px !important;
-        }
-
+        
         .info-row { flex-direction: column; }
         .info-row p { width: 100%; text-align: left !important; }
         .actions { flex-direction: column; gap: 15px; }
@@ -1066,22 +1027,13 @@ function saveSelectedSubjectsToRepo() {
             height: auto !important;
             margin: 0 !important;
             padding: 15px !important;
-            box-shadow: 0 0 0 3px black, 0 0 0 5px white, 0 0 0 6px black !important;
-            border: 3px double black !important;
-            border-radius: 12px !important;
+            box-shadow: none !important;
             font-size: 10pt;
             page-break-after: avoid !important;
             page-break-before: avoid !important;
             justify-content: flex-start !important;
             align-items: stretch !important;
             background: white !important;
-        }
-
-        /* SURGICAL FIX: Grade key table beside results table — grid layout for print */
-        #progressReport[style*="block"] {
-            display: grid !important;
-            grid-template-columns: 35% 65% !important;
-            grid-auto-flow: dense !important;
         }
 
         #progressReport[style*="block"] *,
@@ -1165,7 +1117,7 @@ function saveSelectedSubjectsToRepo() {
             margin: 1.1cm auto 0 auto !important;
             border: 3px double black !important;
             border-radius: 12px !important;
-            box-shadow: 0 0 0 3px black, 0 0 0 5px white, 0 0 0 6px black !important;
+            box-shadow: 0 0 0 3px black !important;
             page-break-after: always !important;
             page-break-inside: avoid !important;
             overflow: hidden !important;
@@ -1177,13 +1129,6 @@ function saveSelectedSubjectsToRepo() {
 
         #batchPrintArea > .progressReportClone {
             transform-origin: top center !important;
-        }
-
-        /* SURGICAL FIX: Grade key beside results table — grid layout for batch print clones */
-        #batchPrintArea > .progressReportClone {
-            display: grid !important;
-            grid-template-columns: 35% 65% !important;
-            grid-auto-flow: dense !important;
         }
 
         #batchPrintArea .back-btn,
@@ -1287,7 +1232,7 @@ function saveSelectedSubjectsToRepo() {
         }
 
         #batchPrintArea #reportGradeKeyTable {
-            width: 100% !important;
+            width: 50% !important;
             table-layout: fixed !important;
             border-collapse: collapse !important;
             margin: 0 !important;
@@ -1296,7 +1241,7 @@ function saveSelectedSubjectsToRepo() {
         #batchPrintArea #reportGradeKeyTable th,
         #batchPrintArea #reportGradeKeyTable td {
             width: 25% !important;
-            text-align: left !important;
+            text-align: center !important;
         }
 
         #batchPrintArea #gradeKeyTableNew {
@@ -1336,43 +1281,6 @@ function saveSelectedSubjectsToRepo() {
 
         #batchPrintArea .info-row span {
             display: inline !important;
-        }
-
-        /* SURGICAL FIX: Grade key placement in print grid */
-        /* All direct children span full width by default */
-        #progressReport[style*="block"] > *,
-        #batchPrintArea > .progressReportClone > * {
-            grid-column: 1 / -1 !important;
-        }
-        /* Hide stray <br> tags in print grid */
-        #progressReport[style*="block"] > br,
-        #batchPrintArea > .progressReportClone > br {
-            display: none !important;
-        }
-        /* Grade key: left column, top-aligned */
-        #progressReport[style*="block"] > #reportGradeKeySection,
-        #batchPrintArea > .progressReportClone > #reportGradeKeySection {
-            grid-column: 1 !important;
-            align-self: start !important;
-            margin-top: 0 !important;
-            margin-right: 8px !important;
-        }
-        /* Results table wrapper: right column */
-        #progressReport[style*="block"] > .table-wrapper,
-        #batchPrintArea > .progressReportClone > .table-wrapper {
-            grid-column: 2 !important;
-            align-self: start !important;
-            margin-top: 0 !important;
-        }
-
-        /* SURGICAL FIX: Restore full width for progress report table during print */
-        #progressReport[style*="block"] #resultsTable {
-            width: 100% !important;
-            margin: 0 !important;
-        }
-        #progressReport[style*="block"] > .table-wrapper {
-            width: 100% !important;
-            text-align: left !important;
         }
     }
 
@@ -1829,11 +1737,8 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
        style="background-color: #f8f9fa; color: #333; border: 1px solid #ddd; padding: 10px; border-radius: 5px; font-weight: bold;">
     <input type="text" id="dataSearchInput" placeholder="Search by name or exam number..." onkeyup="filterStudentMarks()" style="max-width:400px;margin-top:8px;">
 
-    <!-- Voice Score Entry Toggle -->
-    <button id="voiceToggleBtn" onclick="toggleVoicePanel()" class="small-btn" style="background:#2c3e50;color:white;max-width:220px;margin-top:10px;margin-bottom:0;">Show Voice Entry</button>
-
     <!-- Voice Score Entry -->
-    <div id="voiceControlPanel" style="display:none;margin-top:15px;padding:12px;border:2px dashed #8e44ad;border-radius:10px;background:#fdf5ff;">
+    <div id="voiceControlPanel" style="margin-top:15px;padding:12px;border:2px dashed #8e44ad;border-radius:10px;background:#fdf5ff;">
         <p style="font-size:0.95em;color:#8e44ad;font-weight:700;margin-bottom:8px;">Voice Score Entry</p>
         <p id="voiceStatus" style="font-size:0.82em;color:#555;margin-bottom:10px;">Click the mic button and call out the exam number.</p>
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
@@ -2188,58 +2093,23 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
 <div id="archiveSearchResults" class="table-wrapper" style="margin-top:10px;"></div>
 
 <div id="archiveStudentDetail" class="hidden" style="margin-top:15px;">
-    <div id="archiveDetailContent" style="background:white;border:3px double black;outline:3px double black;outline-offset:3px;padding:20px 20px;width:95%;max-width:650px;margin:0 auto;color:black;">
-
-        <!-- Progress Report Header: Logo top center, then school name, then address -->
-        <header id="archiveReportHeader" style="width:100%;text-align:center;margin-bottom:5px;">
-            <img src="https://raw.githubusercontent.com/enitac/a/main/logo.png" style="max-width:150px;height:auto;display:block;margin:0 auto;" alt="School Logo">
-            <div style="font-family:'Times New Roman',Times,serif;">
-                <h3 style="font-size:1.3em;margin:5px 0 0 0;color:black;">MAGAWA SECONDARY SCHOOL</h3>
-                <p style="margin:2px 0 0 0;font-size:11pt;">Private Bag 17, Magawa, Mchinji</p>
-            </div>
-        </header>
-
-        <hr style="border-top:2px solid black;margin:10px 0;">
-        <div style="text-align:center;">
-            <p style="font-size:10px;"><h3 style="margin:0;color:black;"><strong>STUDENT PROGRESS REPORT (ARCHIVED)</strong></h3></p>
-        </div>
-
-        <!-- Student Details Row -->
-        <div id="archiveStudentInfo" style="margin-top:15px;text-align:left;font-size:11pt;color:black;">
-        </div>
-
-        <!-- Results Table (6 columns like front page progress report) -->
-        <div class="table-wrapper" style="overflow-x:auto;width:100%;margin-top:10px;text-align:left;-webkit-overflow-scrolling:touch;">
-            <table id="archiveResultsTable" style="width:100%;border-collapse:collapse;border:1px solid black;font-size:9pt;table-layout:fixed;">
+    <div id="archiveDetailContent" style="background:white;border:3px double black;outline:3px double black;outline-offset:3px;padding:25px 20px;width:95%;max-width:650px;margin:0 auto;color:black;">
+        <div id="archiveStudentInfo" style="text-align:left;margin-bottom:10px;font-size:11pt;color:black;"></div>
+        <div class="table-wrapper">
+            <table id="archiveResultsTable" style="width:100%;border-collapse:collapse;border:1px solid black;font-size:9pt;">
                 <thead>
                     <tr>
-                        <th style="border:1px solid black;padding:4px 3px;width:20%;">SUBJECT</th>
-                        <th style="border:1px solid black;padding:4px 3px;width:10%;">SCORE</th>
-                        <th style="border:1px solid black;padding:4px 3px;width:10%;">GRADE</th>
-                        <th style="border:1px solid black;padding:4px 3px;width:10%;">POSITION</th>
-                        <th style="border:1px solid black;padding:4px 3px;width:30%;">REMARKS</th>
-                        <th style="border:1px solid black;padding:4px 3px;width:20%;">TEACHER</th>
+                        <th style="border:1px solid black;padding:4px 3px;">SUBJECT</th>
+                        <th style="border:1px solid black;padding:4px 3px;">SCORE</th>
+                        <th style="border:1px solid black;padding:4px 3px;">GRADE</th>
+                        <th style="border:1px solid black;padding:4px 3px;">POSITION</th>
+                        <th style="border:1px solid black;padding:4px 3px;">STATUS</th>
                     </tr>
                 </thead>
                 <tbody id="archiveResultsBody"></tbody>
             </table>
         </div>
-
-        <!-- Summary Section -->
-        <div id="archiveSummaryInfo" style="margin-top:15px;width:100%;text-align:left;"></div>
-
-        <!-- Comments Section -->
-        <div id="archiveCommentsSection" style="margin-top:10px;text-align:left;width:100%;">
-            <p style="margin:5px 0;"><strong>FORM TEACHER'S COMMENT:</strong> <span id="archiveTeacherComment" style="font-style:italic;"></span></p>
-            <p style="margin:5px 0;"><strong>HEADTEACHER'S COMMENT:</strong> <span id="archiveHeadComment" style="font-style:italic;"></span></p>
-            <p style="margin:5px 0;"><strong>NEXT TERM OPENS:</strong> <span id="archiveNextTerm"></span>&nbsp;&nbsp;&nbsp;<strong>FEES:</strong> <span id="archiveFees"></span></p>
-        </div>
-
-        <!-- Grade Key Section -->
-        <div id="archiveGradeKeySection" style="margin-top:10px;width:50%;text-align:left;">
-            <div id="archiveGradeKeyPlaceholder"></div>
-        </div>
-
+        <div id="archiveSummaryInfo" style="margin-top:10px;text-align:left;font-size:9pt;color:black;"></div>
     </div>
     <div style="display:flex;justify-content:center;gap:10px;margin-top:15px;">
         <button onclick="printArchiveDetail()" class="small-btn" style="background:#17a2b8;color:white;max-width:150px;">Print Result</button>
@@ -4477,15 +4347,15 @@ function viewArchivedStudent(index) {
     const year = match.year;
     const allStudents = match.allStudents;
 
-    // Populate student info line (matching progress report format)
-    document.getElementById('archiveStudentInfo').innerHTML = '<div style="margin:0 0 4px 0 !important;padding:0;text-align:left !important;font-size:11pt;color:black;">' +
-        '<p style="margin:0 0 4px 0 !important;"><strong>NAME:</strong> ' + (student["STUDENT'S NAME"] || '-') + '&nbsp;&nbsp;' +
-        '<strong>Exam No:</strong> ' + (student["Exam Number"] || '-') + '&nbsp;&nbsp;' +
-        '<strong>SEX:</strong> ' + (student["Sex"] || '-') + '&nbsp;&nbsp;' +
-        '<strong>FORM:</strong> ' + form.toUpperCase().replace('FORM', 'Form ') + '&nbsp;&nbsp;' +
-        '<strong>TERM:</strong> ' + term + '&nbsp;&nbsp;' +
-        '<strong>YEAR:</strong> ' + year +
-        '</p></div>';
+    // Populate student info line
+    document.getElementById('archiveStudentInfo').innerHTML = `
+        <strong>${student["STUDENT'S NAME"] || '-'}</strong>&nbsp;&nbsp;
+        Exam No: <strong>${student["Exam Number"] || '-'}</strong>&nbsp;&nbsp;
+        Sex: <strong>${student["Sex"] || '-'}</strong>&nbsp;&nbsp;
+        Class: <strong>${form.toUpperCase().replace('FORM', 'Form ')}</strong>&nbsp;&nbsp;
+        Term: <strong>${term}</strong>&nbsp;&nbsp;
+        Year: <strong>${year}</strong>
+    `;
 
     // Compute subject positions from all students in the archived file
     const subjectPositions = {};
@@ -4511,36 +4381,28 @@ function viewArchivedStudent(index) {
     });
 
     const isLowerForm = form === 'form1' || form === 'form2';
-    const isUpperForm = !isLowerForm;
     const studentExamNo = student["Exam Number"];
 
-    // Build results table body (6 columns like progress report)
+    // Build results table body
     const tbody = document.getElementById('archiveResultsBody');
     tbody.innerHTML = '';
 
     let passCount = 0;
     let subjectCount = 0;
-    let totalScore = 0;
-    let allScores = [];
 
-    const sortedSubjects = [...ALL_SUBJECTS].sort();
-
-    sortedSubjects.forEach(sub => {
+    ALL_SUBJECTS.forEach(sub => {
         const rawScore = student[sub];
         if (rawScore === undefined || rawScore === null || rawScore.toString().trim() === '') return;
 
         const score = parseInt(rawScore);
         let grade = '-';
         let position = '-';
-        let remark = '';
+        let status = '-';
 
         if (!isNaN(score)) {
             const gr = getGradeAndRemark(form, score);
             grade = gr.grade;
-            remark = gr.remark;
             subjectCount++;
-            totalScore += score;
-            allScores.push(score);
 
             // Position
             if (subjectPositions[sub] && subjectPositions[sub][studentExamNo] !== undefined) {
@@ -4549,73 +4411,67 @@ function viewArchivedStudent(index) {
 
             // Pass/Fail per subject
             if (isLowerForm) {
-                if (['A', 'B', 'C', 'D'].includes(grade)) passCount++;
-                remark = lowerFormRemarkFromGrade(grade);
+                status = ['A', 'B', 'C', 'D'].includes(grade) ? 'Pass' : 'Fail';
             } else {
-                if (parseInt(grade) <= 8) passCount++;
+                status = ['1', '2', '3', '4', '5', '6', '7', '8'].includes(grade) ? 'Pass' : 'Fail';
             }
+
+            if (status === 'Pass') passCount++;
         }
 
-        const teacher = (currentConfig && currentConfig.teachers && currentConfig.teachers[form] && currentConfig.teachers[form][sub]) || '';
-
         const row = document.createElement('tr');
-        row.innerHTML =
-            '<td style="border:1px solid black;padding:4px 3px;text-align:left;">' + sub + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + (isNaN(score) ? rawScore : score) + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + grade + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + position + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + remark + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + teacher + '</td>';
+        row.innerHTML = `
+            <td style="border:1px solid black;padding:4px 3px;text-align:left;">${sub}</td>
+            <td style="border:1px solid black;padding:4px 3px;text-align:center;">${rawScore}</td>
+            <td style="border:1px solid black;padding:4px 3px;text-align:center;">${grade}</td>
+            <td style="border:1px solid black;padding:4px 3px;text-align:center;">${position}</td>
+            <td style="border:1px solid black;padding:4px 3px;text-align:center;color:${status === 'Pass' ? 'green' : (status === 'Fail' ? 'red' : 'black')};font-weight:bold;">${status}</td>
+        `;
         tbody.appendChild(row);
     });
 
-    // Last row: AVERAGE (forms 1&2) or AGGREGATE (forms 3&4)
-    const lastRow = document.createElement('tr');
-    const labelCell = '<td style="border:1px solid black;padding:4px 3px;font-weight:bold;text-align:left;">' + (isUpperForm ? 'AGGREGATE' : 'AVERAGE (BEST 6)') + '</td>';
+    // Overall pass/fail: same logic as main system (6+ subject passes)
+    const overallStatus = subjectCount >= 4 ? (passCount >= 6 ? 'Pass' : 'Fail') : '-';
+    const statusColor = overallStatus === 'Pass' ? 'green' : (overallStatus === 'Fail' ? 'red' : 'black');
 
-    let aggregate = '-';
-    let best6Total = 0;
-    let avgBest6 = '-';
-
-    // Compute best 6 and aggregate
-    const sortedByScore = [...allScores].sort((a, b) => b - a);
-    const best6Scores = sortedByScore.slice(0, 6);
-    best6Total = best6Scores.reduce((s, x) => s + x, 0);
-    avgBest6 = best6Scores.length > 0 ? (best6Total / best6Scores.length).toFixed(1) : '-';
-
-    // Aggregate for upper forms (sum of best 6 grade numbers)
-    let gradeValues = [];
-    sortedSubjects.forEach(sub => {
+    // --- SURGICAL FIX: Compute Best 6, Aggregate, Position in Class ---
+    // Collect all numeric scores with their grade values for ranking
+    let allScoresWithGrades = [];
+    ALL_SUBJECTS.forEach(sub => {
         const raw = student[sub];
         if (raw && !isNaN(parseInt(raw))) {
             const gr = getGradeAndRemark(form, parseInt(raw));
-            if (!isNaN(parseInt(gr.grade))) gradeValues.push(parseInt(gr.grade));
+            allScoresWithGrades.push({ subject: sub, score: parseInt(raw), grade: gr.grade });
         }
     });
+
+    // Best 6 total (sum of top 6 raw scores)
+    const sortedByScore = [...allScoresWithGrades].sort((a, b) => b.score - a.score);
+    const best6Scores = sortedByScore.slice(0, 6);
+    const best6Total = best6Scores.reduce((s, x) => s + x.score, 0);
+
+    // Average of best 6
+    const avgBest6 = best6Scores.length > 0 ? (best6Total / best6Scores.length).toFixed(1) : '0.0';
+
+    // Aggregate for upper forms (sum of best 6 grade numbers)
+    let gradeValues = allScoresWithGrades.map(x => x.grade).filter(g => !isNaN(parseInt(g))).map(g => parseInt(g));
     gradeValues.sort((a, b) => a - b);
-    aggregate = gradeValues.length >= 6 ? gradeValues.slice(0, 6).reduce((s, v) => s + v, 0) : '-';
+    const aggregate = gradeValues.length >= 6 ? gradeValues.slice(0, 6).reduce((s, v) => s + v, 0) : '-';
 
-    if (isUpperForm) {
-        lastRow.innerHTML = labelCell +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>' +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + aggregate + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>';
-    } else {
-        lastRow.innerHTML = labelCell +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + avgBest6 + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>';
-    }
-    tbody.appendChild(lastRow);
-
-    // Compute position in class
+    // Position in class: compute aggregate for all students and rank
     let allStudentAggregates = [];
     allStudents.forEach(s => {
+        let vals = [];
+        ALL_SUBJECTS.forEach(sub => {
+            const raw = s[sub];
+            if (raw && !isNaN(parseInt(raw))) {
+                const gr = getGradeAndRemark(form, parseInt(raw));
+                if (!isNaN(parseInt(gr.grade))) vals.push(parseInt(gr.grade));
+                else vals.push(gr.grade === '-' ? 99 : (['A','B','C','D','F'].indexOf(gr.grade) >= 0 ? ['A','B','C','D','F'].indexOf(gr.grade) : 99));
+            }
+        });
         if (isLowerForm) {
+            // Lower forms: rank by sum of best 6 raw scores
             let sc = [];
             ALL_SUBJECTS.forEach(sub => {
                 const raw = s[sub];
@@ -4625,6 +4481,7 @@ function viewArchivedStudent(index) {
             const b6 = sc.slice(0, 6).reduce((x, y) => x + y, 0);
             allStudentAggregates.push({ examNo: s["Exam Number"], agg: b6 });
         } else {
+            // Upper forms: rank by sum of best 6 grade numbers (lower is better)
             let gv = [];
             ALL_SUBJECTS.forEach(sub => {
                 const raw = s[sub];
@@ -4639,10 +4496,11 @@ function viewArchivedStudent(index) {
         }
     });
 
+    // Sort and assign positions (tied = same position)
     if (isLowerForm) {
-        allStudentAggregates.sort((a, b) => b.agg - a.agg);
+        allStudentAggregates.sort((a, b) => b.agg - a.agg); // Higher total = better
     } else {
-        allStudentAggregates.sort((a, b) => a.agg - b.agg);
+        allStudentAggregates.sort((a, b) => a.agg - b.agg); // Lower aggregate = better
     }
     let lastAgg = null, lastPos = 0;
     allStudentAggregates.forEach((item, i) => {
@@ -4653,56 +4511,23 @@ function viewArchivedStudent(index) {
     });
     const studentRank = allStudentAggregates.find(x => x.examNo === studentExamNo);
     const positionInClass = studentRank ? studentRank.position : '-';
-    const totalStudents = allStudentAggregates.length;
 
-    // Compute final status (Pass/Fail) using same logic as front page
-    let finalStatus = 'Fail';
-    const eng = student['English'];
-    if (eng) {
-        const engGrade = getGradeAndRemark(form, eng).grade;
-        if (isLowerForm) {
-            finalStatus = (passCount >= 6 && ['A', 'B', 'C', 'D'].includes(engGrade)) ? 'Pass' : 'Fail';
-        } else {
-            finalStatus = (passCount >= 6 && parseInt(engGrade) <= 8) ? 'Pass' : 'Fail';
-        }
-    }
-
-    // Summary line (matching progress report format)
-    let summaryHTML = '<div style="width:100%;"><br>' +
-        '<div>POSITION : <strong>' + positionInClass + '</strong>&nbsp;&nbsp;&nbsp;&nbsp;OUT OF: <strong>' + totalStudents + '</strong>&nbsp;&nbsp;&nbsp;&nbsp;STATUS: <strong>' + finalStatus + '</strong></div></div>';
-
+    // Build summary based on form type
+    let summaryHTML = '';
     if (isLowerForm) {
-        summaryHTML = '<div style="width:100%;"><br>' +
-            '<div>TOTAL SCORES: <strong>' + (totalScore > 0 ? totalScore : '0') + '</strong>&nbsp;&nbsp;&nbsp;&nbsp;POSITION : <strong>' + positionInClass + '</strong>&nbsp;&nbsp;&nbsp;&nbsp;OUT OF: <strong>' + totalStudents + '</strong>&nbsp;&nbsp;&nbsp;&nbsp;STATUS: <strong>' + finalStatus + '</strong></div></div>';
+        summaryHTML = `
+            <div style="margin-top:10px;text-align:left;font-size:9pt;color:black;line-height:1.8;">
+                <div>Total (Best 6): <strong>${best6Total}</strong>&nbsp;&nbsp;&nbsp;&nbsp;Average: <strong>${avgBest6}</strong>&nbsp;&nbsp;&nbsp;&nbsp;Position in Class: <strong>${positionInClass}</strong>&nbsp;&nbsp;&nbsp;&nbsp;Status: <strong style="color:${statusColor};">${overallStatus}</strong></div>
+            </div>
+        `;
+    } else {
+        summaryHTML = `
+            <div style="margin-top:10px;text-align:left;font-size:9pt;color:black;line-height:1.8;">
+                <div>Aggregate: <strong>${aggregate}</strong>&nbsp;&nbsp;&nbsp;&nbsp;Position in Class: <strong>${positionInClass}</strong>&nbsp;&nbsp;&nbsp;&nbsp;Status: <strong style="color:${statusColor};">${overallStatus}</strong></div>
+            </div>
+        `;
     }
     document.getElementById('archiveSummaryInfo').innerHTML = summaryHTML;
-
-    // Auto-generate comments
-    const avgForComments = best6Scores.length > 0 ? best6Total / best6Scores.length : 0;
-    let teacherComment = '';
-    let headComment = '';
-
-    // Use a simplified pass check for archive (student object may not have all config-dependent data)
-    const isStudentPass = finalStatus === 'Pass';
-
-    if (isStudentPass) {
-        teacherComment = generateTeacherComment(form, student, avgForComments, passCount, ALL_SUBJECTS.length);
-        headComment = generateHeadComment(form, student, avgForComments, passCount, ALL_SUBJECTS.length, positionInClass, totalStudents);
-    } else {
-        if (avgForComments >= 45) teacherComment = 'Fair effort but needs significant improvement in several subjects to pass.';
-        else teacherComment = 'Needs to work much harder to improve performance across all subjects.';
-        headComment = 'The student has not met the minimum requirements for progression. Extra tuition and parental support are strongly recommended.';
-    }
-
-    document.getElementById('archiveTeacherComment').textContent = teacherComment;
-    document.getElementById('archiveHeadComment').textContent = headComment;
-
-    // Next term opens and fees from config
-    document.getElementById('archiveNextTerm').textContent = (currentConfig && currentConfig.nextTermOpens) ? currentConfig.nextTermOpens : '-';
-    document.getElementById('archiveFees').textContent = (currentConfig && currentConfig.fees) ? currentConfig.fees : '-';
-
-    // Grade key table
-    document.getElementById('archiveGradeKeyPlaceholder').innerHTML = getGradeKeyTableHTML(form);
 
     document.getElementById('archiveStudentDetail').classList.remove('hidden');
     window._currentArchiveMatch = match;
@@ -4719,15 +4544,13 @@ function printArchiveDetail() {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Archived Progress Report - Print</title>
+            <title>Archived Result - Print</title>
             <style>
                 body { margin: 0; padding: 15px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
                 table { width: 100%; border-collapse: collapse; font-size: 9pt; }
                 th, td { border: 1px solid black; padding: 4px 3px; }
                 th { background: #ecf0f1; color: #2c3e50; font-weight: 600; text-align: center; }
-                .table-wrapper { overflow-x: auto; width: 100%; }
-                img { max-width: 150px; height: auto; }
-                @page { size: A4 portrait; margin: 2cm 1cm 1cm 1cm; }
+                @page { size: A4 portrait; margin: 1cm; }
             </style>
         </head>
         <body>${detailContent.innerHTML}</body>
@@ -4764,7 +4587,7 @@ function saveArchiveDetailPdf() {
 
         updateLoadingPercent(90);
         const studentName = window._currentArchiveMatch ? window._currentArchiveMatch.name : 'Student';
-        pdf.save(`${studentName.replace(/ /g, '_')}_Archived_Progress_Report.pdf`);
+        pdf.save(`${studentName.replace(/ /g, '_')}_Archived_Result.pdf`);
 
         updateLoadingPercent(100);
         hideLoading();
@@ -5881,7 +5704,8 @@ async function showStudentMarksList() {
     // Apply SNE column visibility to header
     applySNEColumnToTable();
 
-    // Voice mic is NOT auto-activated — user must open voice entry manually
+    // Auto-activate voice mic now that students are loaded
+    setTimeout(function() { startVoiceExamNumber(true); }, 100);
 }
 
 function updateStudentScore(form, index, subject, value) {
@@ -5922,28 +5746,6 @@ function filterStudentMarks(){
 
 // ============================================================
 // VOICE SCORE ENTRY
-
-// Toggle to hide/unhide the voice score entry panel
-var _voicePanelVisible = false;
-function toggleVoicePanel() {
-    var panel = document.getElementById('voiceControlPanel');
-    var btn = document.getElementById('voiceToggleBtn');
-    if (!panel || !btn) return;
-    if (_voicePanelVisible) {
-        panel.style.display = 'none';
-        btn.textContent = 'Show Voice Entry';
-        btn.style.background = '#2c3e50';
-        // Cancel any active voice session when hiding
-        if (_voiceCallActive) {
-            _cancelVoiceEntry();
-        }
-    } else {
-        panel.style.display = 'block';
-        btn.textContent = 'Hide Voice Entry';
-        btn.style.background = '#8e44ad';
-    }
-    _voicePanelVisible = !_voicePanelVisible;
-}
 // Uses Web Speech API to call out exam numbers and scores
 // ============================================================
 
@@ -5953,66 +5755,8 @@ var _voiceRecognition = null;   // Active SpeechRecognition instance
 var _voiceMode = 'exam';        // 'exam' or 'score'
 var _voiceCallActive = false;   // Whether the Call Exam Number button has been activated (remains true until done)
 var _voiceScoreRetryCount = 0;  // Track retry attempts for score listening
-var _voiceScoreProcessed = false; // SURGICAL FIX: Track if onresult fired to prevent double-retry
-var _voiceScoreMaxRetries = 10; // Max retry attempts for score listening
-var _voiceLockedIndices = {};   // Row indices locked by voice entry this session (keyed by index) — only cleared on cancel
-var _suppressExamRestart = false; // Flag: when true, onend handler must NOT auto-restart exam listening
+var _voiceScoreMaxRetries = 3;  // Maximum retry attempts before giving up
 var _sharedAudioCtx = null;    // Shared AudioContext to prevent double-sound glitches
-
-// --- Freeze scored rows during voice calling to prevent accidental overwrites ---
-function _freezeScoredRows(keepActiveIndex) {
-    var tbody = document.getElementById('dataEntryTableBody');
-    if (!tbody) return;
-    var rows = tbody.getElementsByTagName('tr');
-    for (var i = 0; i < rows.length; i++) {
-        var input = document.getElementById('score_' + i);
-        if (!input) continue;
-        if (i === keepActiveIndex) continue; // Keep current student's input editable
-        var shouldLock = false;
-        // Always lock voice-locked rows (scored during this voice session)
-        if (_voiceLockedIndices[i]) {
-            shouldLock = true;
-        }
-        // If the input already has a score value, freeze it
-        if (input.value && input.value.trim() !== '' && !input.readOnly) {
-            shouldLock = true;
-        }
-        if (shouldLock) {
-            input.readOnly = true;
-            input.tabIndex = -1; // Prevent keyboard tab focus
-            input.style.background = '#e8e8e8';
-            input.style.border = '1px solid #bbb';
-            input.style.color = '#777';
-            input.style.cursor = 'not-allowed';
-            input.setAttribute('data-voicelocked', 'true');
-        }
-    }
-}
-
-function _unfreezeAllRows() {
-    var form = document.getElementById('dataClassSelect').value;
-    var subject = document.getElementById('dataSubjectSelect').value;
-    // Check if this subject is locked for this class
-    var isLocked = currentConfig && currentConfig.locks && currentConfig.locks[form] && currentConfig.locks[form][subject];
-    var tbody = document.getElementById('dataEntryTableBody');
-    if (!tbody) return;
-    var rows = tbody.getElementsByTagName('tr');
-    for (var i = 0; i < rows.length; i++) {
-        var input = document.getElementById('score_' + i);
-        if (!input) continue;
-        if (isLocked) continue; // Keep locked subjects readonly
-        if (input.readOnly) {
-            input.readOnly = false;
-            input.tabIndex = 0; // Restore keyboard tab focus
-            input.style.background = '';
-            input.style.border = '1px solid #cc6600';
-            input.style.color = '';
-            input.style.cursor = '';
-            input.removeAttribute('data-voicelocked');
-            input.onfocus = null;
-        }
-    }
-}
 
 function _getAudioCtx() {
     if (!_sharedAudioCtx) {
@@ -6042,7 +5786,7 @@ function _playSound1_CallExamNumber() {
     } catch (e) {}
 }
 
-// --- Sound 2: single dong — call score (ultra-short for faster transitions) ---
+// --- Sound 2: single dong — call score (shortened for faster transitions) ---
 function _playSound2_CallScore() {
     try {
         var ctx = _getAudioCtx();
@@ -6050,38 +5794,19 @@ function _playSound2_CallScore() {
         var gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.value = 1047;
-        gain.gain.setValueAtTime(0.35, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.08);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.12);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.06);
+        osc.stop(ctx.currentTime + 0.12);
     } catch (e) {}
 }
 
 
 
-// --- Click blocker: prevents user from focusing/typing in voice-locked score inputs ---
-var _clickBlockerInstalled = false;
-function _installClickBlocker() {
-    if (_clickBlockerInstalled) return;
-    _clickBlockerInstalled = true;
-    document.addEventListener('click', function(e) {
-        var target = e.target;
-        if (target && target.getAttribute && target.getAttribute('data-voicelocked') === 'true') {
-            e.preventDefault();
-            e.stopPropagation();
-            target.blur();
-            _setVoiceStatus('Row locked. Click Cancel to unlock.', '#e67e22');
-        }
-    }, true);
-}
-
-function _removeClickBlocker() {
-    _clickBlockerInstalled = false;
-}
-
-// --- Cancel voice entry and reset buttons ---
+// --- SURGICAL FIX: Cancel voice entry and reset buttons ---
 function _cancelVoiceEntry() {
     _stopRecognition();
     _voiceCallActive = false;
@@ -6089,30 +5814,25 @@ function _cancelVoiceEntry() {
     _voiceCurrentIndex = null;
     _voiceCurrentRow = null;
     _voiceScoreRetryCount = 0;
-    _voiceLockedIndices = {}; // Clear voice-locked indices — editing is possible again
     _showRetryButton(false);
     _highlightRow(null);
-    // Remove click blocker
-    _removeClickBlocker();
-    // Unfreeze all scored rows so editing is possible again
-    _unfreezeAllRows();
     document.getElementById('voiceExamBtn').style.background = '#8e44ad';
     document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Call Exam Number';
     document.getElementById('voiceCurrentStudent').style.display = 'none';
     _setVoiceStatus('Voice entry cancelled. Click "Call Exam Number" to start again.', '#555');
     _setVoiceHeard('');
+
 }
 
 function _wordsToNumber(text) {
     // Convert spoken number words into digit strings for accurate matching
     var wordMap = {
-        'ZERO':'0','ZIRO':'0','ONE':'1','WON':'1','TWO':'2','TOO':'2','TO':'2','THREE':'3','FREE':'3','TREE':'3',
-        'FOUR':'4','FOR':'4','FORE':'4','FIVE':'5','SIX':'6','SEVEN':'7','SEVREN':'7','SEVIN':'7',
-        'EIGHT':'8','ATE':'8','AIGHT':'8','NINE':'9','TEN':'10','ELEVEN':'11',
+        'ZERO':'0','ONE':'1','TWO':'2','TOO':'2','TO':'2','THREE':'3','FREE':'3','FOUR':'4','FOR':'4',
+        'FIVE':'5','SIX':'6','SEVEN':'7','EIGHT':'8','ATE':'8','NINE':'9','TEN':'10','ELEVEN':'11',
         'TWELVE':'12','THIRTEEN':'13','FOURTEEN':'14','FIFTEEN':'15','SIXTEEN':'16','SEVENTEEN':'17',
-        'EIGHTEEN':'18','NINETEEN':'19','TWENTY':'20','TWENNY':'20','THIRTY':'30','FORTY':'40','FIFTY':'50',
+        'EIGHTEEN':'18','NINETEEN':'19','TWENTY':'20','THIRTY':'30','FORTY':'40','FIFTY':'50',
         'SIXTY':'60','SEVENTY':'70','EIGHTY':'80','NINETY':'90','HUNDRED':'100','THOUSAND':'1000'
-       };
+    };
     var input = text.toUpperCase().trim();
     // If it already contains digits, just strip non-digits and return
     if (/[0-9]/.test(input)) {
@@ -6240,17 +5960,14 @@ function _manualRetryScore() {
 // --- Helper: start listening for score with auto-retry ---
 function _startScoreListening() {
     _voiceMode = 'score';
-    _voiceScoreProcessed = false; // SURGICAL FIX: Reset flag for each new listening session
     var scoreRecognition = _getSpeechRecognition();
     if (!scoreRecognition) return;
     _voiceRecognition = scoreRecognition;
 
-    var retryMsg = _voiceScoreRetryCount > 0 ? ' (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')' : '';
-    _setVoiceStatus('Say score...' + retryMsg, '#e67e22');
+    var retryMsg = _voiceScoreRetryCount > 0 ? ' (Retry ' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')' : '';
+    _setVoiceStatus('Listening for score... Speak the number now.' + retryMsg, '#e67e22');
 
     scoreRecognition.onresult = function(event) {
-        // SURGICAL FIX: Mark that onresult fired so onend doesn't double-retry
-        _voiceScoreProcessed = true;
         // Try all alternatives to find one that contains a number
         var bestTranscript = '';
         var bestNumeric = '';
@@ -6273,51 +5990,32 @@ function _startScoreListening() {
             bestNumeric = converted || bestTranscript;
         }
         _setVoiceHeard(bestTranscript);
-        // SURGICAL FIX: Removed _voiceScoreRetryCount = 0 from here — only reset on valid score
+        _voiceScoreRetryCount = 0; // Reset on successful recognition
         _applyVoiceScore(bestNumeric);
     };
 
     scoreRecognition.onerror = function(event) {
         console.warn('Score speech error:', event.error);
+        // Don't retry here — let onend handle retries to avoid double-retry bug
         if (event.error === 'not-allowed') {
             _voiceCallActive = false;
-            _unfreezeAllRows(); // Unfreeze rows since calling is effectively stopped
             _setVoiceStatus('Microphone access denied. Allow mic access in browser settings.', '#e74c3c');
             _showRetryButton(true);
+        } else {
+            _setVoiceStatus('Error: ' + event.error + ', retrying...', '#e67e22');
         }
-        // For 'no-speech', 'aborted', and other errors, stay silent — onend handles retry automatically
-        // Mic stays open, session continues uninterrupted
     };
 
     scoreRecognition.onend = function() {
-        // Only null out _voiceRecognition if it still points to THIS instance
-        // Prevents race condition when a newer recognition was already started
-        if (_voiceRecognition === scoreRecognition) {
-            _voiceRecognition = null;
-        }
-        // SURGICAL FIX: Only retry if onresult NEVER fired (no speech detected at all)
-        // If onresult did fire, _applyVoiceScore handles retrying — prevents double-retry race condition
-        if (_voiceMode === 'score' && _voiceCallActive && !_voiceScoreProcessed) {
-            // SURGICAL FIX: Check max retries — show "Score not responding" and return to exam mode
-            if (_voiceScoreRetryCount >= _voiceScoreMaxRetries) {
-                _setVoiceStatus('Score not responding. Returning to exam number...', '#e74c3c');
-                _voiceCurrentIndex = null;
-                document.getElementById('voiceCurrentStudent').style.display = 'none';
-                _setVoiceHeard('');
-                _highlightRow(null);
-                setTimeout(function() {
-                    if (_voiceCallActive) startVoiceExamNumber(true);
-                }, 1500);
-                return;
-            }
+        _voiceRecognition = null;
+        // Auto-retry if still in score mode and haven't exceeded max retries
+        // (all retries are handled here to avoid double-retry from onerror + onend)
+        if (_voiceMode === 'score' && _voiceCallActive && _voiceScoreRetryCount < _voiceScoreMaxRetries) {
             _voiceScoreRetryCount++;
-            if (_voiceScoreRetryCount <= 3) {
-                _setVoiceStatus('Say score... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#e67e22');
-            } else {
-                _setVoiceStatus('Say score... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#999');
-            }
-            // SURGICAL FIX: Increased delay from 10ms to 500ms to prevent rapid beep/message flashing
-            setTimeout(function() { _startScoreListening(); }, 500);
+            setTimeout(function() { _startScoreListening(); }, 10);
+        } else if (_voiceMode === 'score' && _voiceCallActive && _voiceScoreRetryCount >= _voiceScoreMaxRetries) {
+            _setVoiceStatus('Score not heard after ' + _voiceScoreMaxRetries + ' attempts. Click "Retry Score" or call next exam number.', '#e74c3c');
+            _showRetryButton(true);
         }
     };
 
@@ -6344,12 +6042,8 @@ function startVoiceExamNumber(silent) {
     }
 
     _stopRecognition();
-    _voiceCallActive = true; // Mark as active — button stays active until done
+    _voiceCallActive = true; // SURGICAL FIX: Mark as active — button stays active until done
     _voiceMode = 'exam';
-    // Freeze rows that already have scores to prevent accidental overwrites
-    _freezeScoredRows(null);
-    // Add global click blocker on voice-locked inputs
-    _installClickBlocker();
     var recognition = _getSpeechRecognition();
     if (!recognition) return;
     _voiceRecognition = recognition;
@@ -6392,29 +6086,18 @@ function startVoiceExamNumber(silent) {
 
     recognition.onerror = function(event) {
         console.warn('Speech error:', event.error);
-        if (event.error === 'not-allowed') {
+        if (event.error === 'no-speech') {
+            _setVoiceStatus('No speech detected. Try again.', '#e74c3c');
+        } else if (event.error === 'not-allowed') {
             _setVoiceStatus('Microphone access denied. Allow mic access in browser settings.', '#e74c3c');
-        } else if (event.error === 'audio-capture') {
-            _setVoiceStatus('No microphone found. Check your device.', '#e67e22');
-        } else if (event.error === 'network') {
-            _setVoiceStatus('Network error. Still listening...', '#e67e22');
+        } else {
+            _setVoiceStatus('Error: ' + event.error + '. Try again.', '#e74c3c');
         }
-        // For 'no-speech' and 'aborted', stay silent — onend restarts automatically
-        // Keep button active on ALL errors — do not reset _voiceCallActive
+        // SURGICAL FIX: Keep button active on error — do not reset _voiceCallActive
     };
 
     recognition.onend = function() {
-        // Only null out _voiceRecognition if it still points to THIS instance
-        // Prevents race condition when a newer recognition was already started
-        if (_voiceRecognition === recognition) {
-            _voiceRecognition = null;
-        }
-        // Keep listening for exam number — mic stays open until cancelled
-        // BUT do NOT restart if _suppressExamRestart is true (locked-row timeout already handling it)
-        if (_voiceMode === 'exam' && _voiceCallActive && !_suppressExamRestart) {
-            // Muted: don't show repetitive "still listening" messages
-            setTimeout(function() { startVoiceExamNumber(true); }, 10);
-        }
+        _voiceRecognition = null;
     };
 
     recognition.start();
@@ -6458,7 +6141,7 @@ function _matchExamNumber(transcript, form, subject) {
     }
 
     if (matchIndex === -1) {
-        _setVoiceStatus('Not found. Say again.', '#e74c3c');
+        _setVoiceStatus('Exam number "' + transcript + '" not found. Try again.', '#e74c3c');
         _highlightRow(null);
         return;
     }
@@ -6469,42 +6152,17 @@ function _matchExamNumber(transcript, form, subject) {
     _voiceCurrentRow = matchIndex;
     _highlightRow(matchIndex);
 
-    var matchedInput = document.getElementById('score_' + matchIndex);
-
-    // --- LOCK CHECK: If this row already has a score, it is locked — skip and keep listening ---
-    if (matchedInput && matchedInput.value && matchedInput.value.trim() !== '') {
-        _setVoiceStatus(student['Exam Number'] + ' done (' + matchedInput.value.trim() + '). Next...', '#999');
-        // Prevent onend from auto-restarting — WE will handle the restart after the delay
-        _suppressExamRestart = true;
-        setTimeout(function() {
-            _highlightRow(null);
-            _suppressExamRestart = false;
-            if (_voiceCallActive) startVoiceExamNumber(true);
-        }, 800); // Faster skip delay
-        return;
-    }
-
-    // Unfreeze the matched student's score input so voice can enter/edit the score
-    if (matchedInput) {
-        matchedInput.readOnly = false;
-        matchedInput.tabIndex = 0; // Restore keyboard focus
-        matchedInput.style.background = '';
-        matchedInput.style.border = '1px solid #cc6600';
-        matchedInput.style.color = '';
-        matchedInput.style.cursor = '';
-        matchedInput.removeAttribute('data-voicelocked');
-        matchedInput.onfocus = null; // Remove focus blocker
-    }
-
     var currentStudentEl = document.getElementById('voiceCurrentStudent');
     currentStudentEl.textContent = student['Exam Number'] + ' — ' + (student["STUDENT'S NAME"] || 'Unknown');
     currentStudentEl.style.display = 'block';
 
-    _setVoiceStatus('Calling score for ' + student['Exam Number'], '#2ecc71');
-    _setVoiceHeard('');
+    _setVoiceStatus('Student found! ' + student['Exam Number'] + ' — ' + (student["STUDENT'S NAME"] || 'Unknown'), '#2ecc71');
 
-    // Play Sound 2 to signal "Call Score"
+    // SURGICAL FIX: Play Sound 2 to signal "Call Score"
     _playSound2_CallScore();
+
+    // SURGICAL FIX: Do NOT focus the score input during voice entry — it triggers the phone keyboard popup.
+    // The voice system sets the score programmatically via _applyVoiceScore(), so focus is unnecessary.
 
     // FAST TRANSITION: Immediately start listening for score (no delay)
     _voiceScoreRetryCount = 0;
@@ -6522,41 +6180,32 @@ function _applyVoiceScore(transcript) {
     var scoreStr = transcript.replace(/[^0-9]/g, '');
     var score = parseInt(scoreStr, 10);
 
-    // SURGICAL FIX: Check max retries BEFORE retrying — prevents infinite beep/message loop
-    if (_voiceScoreRetryCount >= _voiceScoreMaxRetries) {
-        _setVoiceStatus('Score not responding. Returning to exam number...', '#e74c3c');
-        _voiceCurrentIndex = null;
-        document.getElementById('voiceCurrentStudent').style.display = 'none';
-        _setVoiceHeard('');
-        _highlightRow(null);
-        // Return to exam number listening after a pause
-        setTimeout(function() {
-            if (_voiceCallActive) startVoiceExamNumber(true);
-        }, 1500);
-        return;
-    }
-
     if (isNaN(score) || scoreStr === '') {
         _voiceScoreRetryCount++;
-        _setVoiceStatus('Not heard. Say again... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#e67e22');
-        // SURGICAL FIX: Increased delay from 10ms to 500ms to prevent rapid message/beep flashing
-        setTimeout(function() { _startScoreListening(); }, 500);
+        if (_voiceScoreRetryCount <= _voiceScoreMaxRetries) {
+            _setVoiceStatus('Could not understand "' + transcript + '". Auto-retrying (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')...', '#e67e22');
+            setTimeout(function() { _startScoreListening(); }, 10);
+        } else {
+            _setVoiceStatus('Could not understand score after ' + _voiceScoreMaxRetries + ' retries. Click "Retry Score" to try again.', '#e74c3c');
+            _showRetryButton(true);
+        }
         return;
     }
 
     if (score < 0 || score > 100) {
         _voiceScoreRetryCount++;
-        _setVoiceStatus('Out of range (0-100). Say again... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#e67e22');
-        // SURGICAL FIX: Increased delay from 10ms to 500ms to prevent rapid message/beep flashing
-        setTimeout(function() { _startScoreListening(); }, 500);
+        if (_voiceScoreRetryCount <= _voiceScoreMaxRetries) {
+            _setVoiceStatus('Invalid score (' + score + '). Auto-retrying (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')...', '#e67e22');
+            setTimeout(function() { _startScoreListening(); }, 10);
+        } else {
+            _setVoiceStatus('Invalid score after ' + _voiceScoreMaxRetries + ' retries. Click "Retry Score" to try again.', '#e74c3c');
+            _showRetryButton(true);
+        }
         return;
     }
 
     var form = document.getElementById('dataClassSelect').value;
     var subject = document.getElementById('dataSubjectSelect').value;
-
-    // SURGICAL FIX: Reset retry count only when a valid score is about to be entered
-    _voiceScoreRetryCount = 0;
 
     // Set the score in the input
     var scoreInput = document.getElementById('score_' + _voiceCurrentIndex);
@@ -6565,35 +6214,11 @@ function _applyVoiceScore(transcript) {
         updateStudentScore(form, _voiceCurrentIndex, subject, String(score));
     }
 
-    // Mark this row as voice-locked so it cannot be re-accessed until calling is cancelled
-    _voiceLockedIndices[_voiceCurrentIndex] = true;
-
-    // Lock the just-scored row so it can't be accidentally overwritten by misheard exam numbers
-    var justScoredInput = document.getElementById('score_' + _voiceCurrentIndex);
-    if (justScoredInput && justScoredInput.value && justScoredInput.value.trim() !== '') {
-        var form_check = document.getElementById('dataClassSelect').value;
-        var subject_check = document.getElementById('dataSubjectSelect').value;
-        var isLocked = currentConfig && currentConfig.locks && currentConfig.locks[form_check] && currentConfig.locks[form_check][subject_check];
-        if (!isLocked) {
-            justScoredInput.readOnly = true;
-            justScoredInput.tabIndex = -1; // Prevent keyboard tab focus
-            justScoredInput.style.background = '#e8e8e8';
-            justScoredInput.style.border = '1px solid #bbb';
-            justScoredInput.style.color = '#777';
-            justScoredInput.style.cursor = 'not-allowed';
-            justScoredInput.setAttribute('data-voicelocked', 'true');
-            // Block focus events on locked rows — user cannot click into them
-            justScoredInput.onfocus = function() { this.blur(); };
-        }
-    }
-
-    // Brief success status only
-    _setVoiceStatus(score + ' ✓', '#2ecc71');
+    _setVoiceStatus('Score ' + score + ' entered for ' + (currentClassData[form][_voiceCurrentIndex]['Exam Number'] || '') + '. Ready for next student.', '#2ecc71');
 
     // Auto-advance: prepare for next student
     _voiceCurrentIndex = null;
     document.getElementById('voiceCurrentStudent').style.display = 'none';
-    _setVoiceHeard('');
 
     // FAST TRANSITION: Immediately loop back to listening for next exam number
     // The call button stays active (_voiceCallActive remains true) since calling is not done
