@@ -6113,13 +6113,24 @@ function startVoiceExamNumber(silent) {
 
     var form = document.getElementById('dataClassSelect').value;
     var subject = document.getElementById('dataSubjectSelect').value;
+
+    // Always activate the call button visually when called from toggleVoicePanel
+    document.getElementById('voiceExamBtn').style.background = '#6c3483';
+    document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Cancel Calling';
+
     if (!form || !subject) {
-        if (!silent) alert('Please select a Class and Subject first.');
+        if (!silent) {
+            _voiceCallActive = true; // Mark active so button stays in cancel state
+            _setVoiceStatus('Select a Class and Subject first, then mic will start listening.', '#e67e22');
+        }
         return;
     }
     var panel = document.getElementById('studentMarksPanel');
     if (panel && panel.classList.contains('hidden')) {
-        if (!silent) alert('No students loaded. Select class and subject to load students first.');
+        if (!silent) {
+            _voiceCallActive = true;
+            _setVoiceStatus('Load students first (select class and subject), then mic will start.', '#e67e22');
+        }
         return;
     }
 
@@ -6140,8 +6151,6 @@ function startVoiceExamNumber(silent) {
     _setVoiceStatus('Listening for exam number... Speak now.', '#8e44ad');
     _setVoiceHeard('');
     document.getElementById('voiceCurrentStudent').style.display = 'none';
-    document.getElementById('voiceExamBtn').style.background = '#6c3483';
-    document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Cancel Calling';
 
     // --- UNIFIED onresult handler: dispatches by _voiceMode ---
     recognition.onresult = function(event) {
@@ -6164,9 +6173,11 @@ function startVoiceExamNumber(silent) {
             }
             if (a === 0) bestTranscript = raw;
         }
-        if (!bestNumeric) {
-            var converted = _wordsToNumber(bestTranscript);
-            bestNumeric = converted || bestTranscript;
+        // STRICT: Only process results that contain actual numbers — ignore all other words
+        if (!bestNumeric || !/^[0-9]+$/.test(bestNumeric)) {
+            // No number detected — ignore this utterance, stay in current mode
+            _voiceBusy = false;
+            return;
         }
         _setVoiceHeard(bestTranscript);
 
@@ -6278,18 +6289,21 @@ function _handleScoreResult(transcript) {
     var score = parseInt(scoreStr, 10);
 
     if (isNaN(score) || scoreStr === '') {
-        _setVoiceStatus('Could not understand "' + transcript + '". Listening again...', '#e67e22');
+        _voiceScoreRetryCount++;
+        _setVoiceStatus('Could not understand score. Retry ' + _voiceScoreRetryCount + ' — speak the number clearly...', '#e67e22');
         // Stay in score mode — cursor does NOT move, mic stays open for retry
         return;
     }
 
     if (score < 0 || score > 100) {
-        _setVoiceStatus('Invalid score (' + score + '). Listening again...', '#e67e22');
+        _voiceScoreRetryCount++;
+        _setVoiceStatus('Invalid score (' + score + '). Retry ' + _voiceScoreRetryCount + ' — say a number between 0 and 100...', '#e67e22');
         // Stay in score mode — cursor does NOT move, mic stays open for retry
         return;
     }
 
     // Valid score — apply it
+    _voiceScoreRetryCount = 0;
     var form = document.getElementById('dataClassSelect').value;
     var subject = document.getElementById('dataSubjectSelect').value;
 
