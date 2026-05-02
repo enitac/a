@@ -2118,23 +2118,36 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
 
 <div id="archiveStudentDetail" class="hidden" style="margin-top:15px;">
     <div id="archiveDetailContent" style="background:white;border:3px double black;outline:3px double black;outline-offset:3px;padding:25px 20px;width:95%;max-width:650px;margin:0 auto;color:black;">
-        <div id="archiveStudentInfo" style="text-align:left;margin-bottom:10px;font-size:11pt;color:black;"></div>
+        <header id="archiveReportHeader" style="width: 100%;">
+            <img src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt="School Logo">
+            <div style="text-align:center;flex:1;margin-left:-15px;font-size:0.8em;line-height:1.4;">
+                <h3 style="font-size:1.3em;margin:0 0 5px 0;color:black;">SECONDARY SCHOOL</h3>
+                <p style="margin:5px 0;font-size:14pt;"><strong>Private Bag 17,<br>MAGAWA, MCHINJI.</strong></p>
+            </div>
+        </header>
+        <hr style="border-top:2px solid black;margin:10px 0;">
+        <div style="text-align:center;">
+            <h2 style="margin:0;color:black;font-size:1.2em;"><strong>STUDENT PROGRESS REPORT</strong></h2>
+        </div>
+        <div id="archiveStudentInfo" style="text-align:left;margin-top:10px;font-size:11pt;color:black;"></div>
         <div class="table-wrapper">
             <table id="archiveResultsTable" style="width:100%;border-collapse:collapse;border:1px solid black;font-size:9pt;">
                 <thead>
                     <tr>
-                        <th style="border:1px solid black;padding:4px 3px;">SUBJECT</th>
-                        <th style="border:1px solid black;padding:4px 3px;">SCORE</th>
-                        <th style="border:1px solid black;padding:4px 3px;">GRADE</th>
-                        <th style="border:1px solid black;padding:4px 3px;">POSITION</th>
-                        <th style="border:1px solid black;padding:4px 3px;">REMARKS</th>
-                        <th style="border:1px solid black;padding:4px 3px;">TEACHER</th>
+                        <th style="width:20%;border:1px solid black;padding:4px 3px;">SUBJECT</th>
+                        <th style="width:10%;border:1px solid black;padding:4px 3px;">SCORE</th>
+                        <th style="width:10%;border:1px solid black;padding:4px 3px;">GRADE</th>
+                        <th style="width:10%;border:1px solid black;padding:4px 3px;">POSITION</th>
+                        <th style="width:30%;border:1px solid black;padding:4px 3px;">REMARKS</th>
+                        <th style="width:20%;border:1px solid black;padding:4px 3px;">TEACHER</th>
                     </tr>
                 </thead>
                 <tbody id="archiveResultsBody"></tbody>
             </table>
         </div>
         <div id="archiveSummaryInfo" style="margin-top:10px;text-align:left;font-size:9pt;color:black;"></div>
+        <div id="archiveCommentsSection" style="margin-top:10px;text-align:left;width:100%;"></div>
+        <div id="archiveGradeKeySection" style="margin-top:10px;width:100%;text-align:left;"></div>
     </div>
     <div style="display:flex;justify-content:center;gap:10px;margin-top:15px;">
         <button onclick="printArchiveDetail()" class="small-btn" style="background:#17a2b8;color:white;max-width:150px;">Print Result</button>
@@ -4372,14 +4385,16 @@ function viewArchivedStudent(index) {
     const year = match.year;
     const allStudents = match.allStudents;
 
-    // Populate student info line
+    // Populate student info — same layout as front page progress report
     document.getElementById('archiveStudentInfo').innerHTML = `
-        <strong>${student["STUDENT'S NAME"] || '-'}</strong>&nbsp;&nbsp;
-        Exam No: <strong>${student["Exam Number"] || '-'}</strong>&nbsp;&nbsp;
-        Sex: <strong>${student["Sex"] || '-'}</strong>&nbsp;&nbsp;
-        Class: <strong>${form.toUpperCase().replace('FORM', 'Form ')}</strong>&nbsp;&nbsp;
-        Term: <strong>${term}</strong>&nbsp;&nbsp;
-        Year: <strong>${year}</strong>
+        <div style="margin:0 0 4px 0;font-size:11pt;color:black;line-height:1.6;">
+            <strong>NAME:</strong> <span>${student["STUDENT'S NAME"] || '-'}</span>&nbsp;&nbsp;
+            <strong>Exam No:</strong> <span>${student["Exam Number"] || '-'}</span>&nbsp;&nbsp;
+            <strong>SEX:</strong> <span>${student["Sex"] || '-'}</span>&nbsp;&nbsp;
+            <strong>FORM:</strong> <span>${form.toUpperCase().replace('FORM', 'Form ')}</span>&nbsp;&nbsp;
+            <strong>TERM:</strong> <span>${term}</span>&nbsp;&nbsp;
+            <strong>YEAR:</strong> <span>${year}</span>
+        </div>
     `;
 
     // Compute subject positions from all students in the archived file
@@ -4430,6 +4445,11 @@ function viewArchivedStudent(index) {
             grade = gr.grade;
             remark = gr.remark;
             subjectCount++;
+
+            // Lower form remark override — same as front page progress report
+            if (isLowerForm) {
+                remark = lowerFormRemarkFromGrade(grade);
+            }
 
             // Position
             if (subjectPositions[sub] && subjectPositions[sub][studentExamNo] !== undefined) {
@@ -4543,22 +4563,66 @@ function viewArchivedStudent(index) {
     const studentRank = allStudentAggregates.find(x => x.examNo === studentExamNo);
     const positionInClass = studentRank ? studentRank.position : '-';
 
-    // Build summary based on form type
+    // --- SURGICAL FIX: Add AVERAGE/AGGREGATE last row to table (same as front page) ---
+    const isUpper = form === 'form3' || form === 'form4';
+    const lastRow = tbody.insertRow();
+    const labelCell = lastRow.insertCell();
+    labelCell.style.fontWeight = 'bold';
+    labelCell.style.border = '1px solid black';
+    labelCell.style.padding = '4px 3px';
+    labelCell.textContent = isUpper ? 'AGGREGATE' : 'AVERAGE (BEST 6)';
+    if (isUpper) {
+        const emptyScore = lastRow.insertCell();
+        emptyScore.style.border = '1px solid black';
+        emptyScore.style.padding = '4px 3px';
+        const aggCell = lastRow.insertCell();
+        aggCell.style.border = '1px solid black';
+        aggCell.style.padding = '4px 3px';
+        aggCell.style.textAlign = 'center';
+        aggCell.textContent = aggregate !== '-' ? aggregate : '-';
+    } else {
+        const avgCell = lastRow.insertCell();
+        avgCell.style.border = '1px solid black';
+        avgCell.style.padding = '4px 3px';
+        avgCell.style.textAlign = 'center';
+        avgCell.textContent = best6Total > 0 ? avgBest6 : '-';
+        const emptyGrade = lastRow.insertCell();
+        emptyGrade.style.border = '1px solid black';
+        emptyGrade.style.padding = '4px 3px';
+    }
+    for (var emp = 0; emp < 3; emp++) {
+        const emptyCell = lastRow.insertCell();
+        emptyCell.style.border = '1px solid black';
+        emptyCell.style.padding = '4px 3px';
+    }
+
+    // --- SURGICAL FIX: Summary in same format as front page progress report ---
     let summaryHTML = '';
     if (isLowerForm) {
         summaryHTML = `
-            <div style="margin-top:10px;text-align:left;font-size:9pt;color:black;line-height:1.8;">
-                <div>Total (Best 6): <strong>${best6Total}</strong>&nbsp;&nbsp;&nbsp;&nbsp;Average: <strong>${avgBest6}</strong>&nbsp;&nbsp;&nbsp;&nbsp;Position in Class: <strong>${positionInClass}</strong>&nbsp;&nbsp;&nbsp;&nbsp;Status: <strong style="color:${statusColor};">${overallStatus}</strong></div>
+            <div style="margin-top:10px;font-size:9pt;color:black;">
+                <div>TOTAL SCORES: <strong>${best6Total}</strong>&nbsp;&nbsp;&nbsp;&nbsp;POSITION : <strong>${positionInClass}</strong>&nbsp;&nbsp;&nbsp;&nbsp;OUT OF: <strong>${allStudentAggregates.length}</strong>&nbsp;&nbsp;&nbsp;&nbsp;STATUS: <strong>${overallStatus}</strong></div>
             </div>
         `;
     } else {
         summaryHTML = `
-            <div style="margin-top:10px;text-align:left;font-size:9pt;color:black;line-height:1.8;">
-                <div>Aggregate: <strong>${aggregate}</strong>&nbsp;&nbsp;&nbsp;&nbsp;Position in Class: <strong>${positionInClass}</strong>&nbsp;&nbsp;&nbsp;&nbsp;Status: <strong style="color:${statusColor};">${overallStatus}</strong></div>
+            <div style="margin-top:10px;font-size:9pt;color:black;">
+                <div>POSITION : <strong>${positionInClass}</strong>&nbsp;&nbsp;&nbsp;&nbsp;OUT OF: <strong>${allStudentAggregates.length}</strong>&nbsp;&nbsp;&nbsp;&nbsp;STATUS: <strong>${overallStatus}</strong></div>
             </div>
         `;
     }
     document.getElementById('archiveSummaryInfo').innerHTML = summaryHTML;
+
+    // --- SURGICAL FIX: Comments section (matching front page layout) ---
+    const teacherComment = generateTeacherComment(form, student, best6Total > 0 ? parseFloat(avgBest6) : 0, 0, ALL_SUBJECTS.length);
+    const headComment = generateHeadComment(form, student, best6Total > 0 ? parseFloat(avgBest6) : 0, 0, ALL_SUBJECTS.length, positionInClass, allStudentAggregates.length);
+    document.getElementById('archiveCommentsSection').innerHTML = `
+        <p style="margin:5px 0;font-size:9pt;color:black;"><strong>FORM TEACHER'S COMMENT:</strong> <span style="font-style:italic;">${teacherComment}</span></p>
+        <p style="margin:5px 0;font-size:9pt;color:black;"><strong>HEADTEACHER'S COMMENT:</strong> <span style="font-style:italic;">${headComment}</span></p>
+    `;
+
+    // --- SURGICAL FIX: Grade key section (matching front page) ---
+    document.getElementById('archiveGradeKeySection').innerHTML = getGradeKeyTableHTML(form);
 
     document.getElementById('archiveStudentDetail').classList.remove('hidden');
     window._currentArchiveMatch = match;
@@ -5929,7 +5993,7 @@ function _getSpeechRecognition() {
         return null;
     }
     var recognition = new SR();
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
     recognition.maxAlternatives = 5;
@@ -6049,6 +6113,7 @@ function _startScoreListening() {
         }
         _setVoiceHeard(bestTranscript);
         _voiceScoreRetryCount = 0; // Reset on successful recognition
+        _stopRecognition(); // Stop continuous listening after first result
         _applyVoiceScore(bestNumeric);
     };
 
@@ -6066,14 +6131,9 @@ function _startScoreListening() {
 
     scoreRecognition.onend = function() {
         _voiceRecognition = null;
-        // Auto-retry if still in score mode and haven't exceeded max retries
-        // (all retries are handled here to avoid double-retry from onerror + onend)
-        if (_voiceMode === 'score' && _voiceCallActive && _voiceScoreRetryCount < _voiceScoreMaxRetries) {
-            _voiceScoreRetryCount++;
+        // SURGICAL FIX: Keep retrying indefinitely in score mode — never give up, never advance row
+        if (_voiceMode === 'score' && _voiceCallActive) {
             setTimeout(function() { _startScoreListening(); }, 10);
-        } else if (_voiceMode === 'score' && _voiceCallActive && _voiceScoreRetryCount >= _voiceScoreMaxRetries) {
-            _setVoiceStatus('Score not heard after ' + _voiceScoreMaxRetries + ' attempts. Click "Retry Score" or call next exam number.', '#e74c3c');
-            _showRetryButton(true);
         }
     };
 
@@ -6138,24 +6198,27 @@ function startVoiceExamNumber(silent) {
             bestNumeric = converted || bestTranscript;
         }
         _setVoiceHeard(bestTranscript);
+        _stopRecognition(); // Stop continuous listening after first result
         _matchExamNumber(bestNumeric, form, subject);
         // Do NOT reset button here — it stays active until calling is done
     };
 
     recognition.onerror = function(event) {
         console.warn('Speech error:', event.error);
-        if (event.error === 'no-speech') {
-            _setVoiceStatus('No speech detected. Try again.', '#e74c3c');
-        } else if (event.error === 'not-allowed') {
+        if (event.error === 'not-allowed') {
+            _voiceCallActive = false;
             _setVoiceStatus('Microphone access denied. Allow mic access in browser settings.', '#e74c3c');
         } else {
             _setVoiceStatus('Error: ' + event.error + '. Try again.', '#e74c3c');
         }
-        // SURGICAL FIX: Keep button active on error — do not reset _voiceCallActive
     };
 
     recognition.onend = function() {
         _voiceRecognition = null;
+        // SURGICAL FIX: Auto-restart exam number listening if still active and no result was processed
+        if (_voiceCallActive && _voiceMode === 'exam') {
+            setTimeout(function() { startVoiceExamNumber(true); }, 10);
+        }
     };
 
     recognition.start();
@@ -6239,26 +6302,18 @@ function _applyVoiceScore(transcript) {
     var score = parseInt(scoreStr, 10);
 
     if (isNaN(score) || scoreStr === '') {
-        _voiceScoreRetryCount++;
-        if (_voiceScoreRetryCount <= _voiceScoreMaxRetries) {
-            _setVoiceStatus('Could not understand "' + transcript + '". Auto-retrying (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')...', '#e67e22');
-            setTimeout(function() { _startScoreListening(); }, 10);
-        } else {
-            _setVoiceStatus('Could not understand score after ' + _voiceScoreMaxRetries + ' retries. Click "Retry Score" to try again.', '#e74c3c');
-            _showRetryButton(true);
-        }
+        // SURGICAL FIX: Keep retrying on same row until score is understood — never give up
+        _setVoiceStatus('Could not understand "' + transcript + '". Listening again...', '#e67e22');
+        _voiceScoreRetryCount = 0;
+        setTimeout(function() { _startScoreListening(); }, 10);
         return;
     }
 
     if (score < 0 || score > 100) {
-        _voiceScoreRetryCount++;
-        if (_voiceScoreRetryCount <= _voiceScoreMaxRetries) {
-            _setVoiceStatus('Invalid score (' + score + '). Auto-retrying (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')...', '#e67e22');
-            setTimeout(function() { _startScoreListening(); }, 10);
-        } else {
-            _setVoiceStatus('Invalid score after ' + _voiceScoreMaxRetries + ' retries. Click "Retry Score" to try again.', '#e74c3c');
-            _showRetryButton(true);
-        }
+        // SURGICAL FIX: Keep retrying on same row for valid score range — never give up
+        _setVoiceStatus('Invalid score (' + score + '). Listening again...', '#e67e22');
+        _voiceScoreRetryCount = 0;
+        setTimeout(function() { _startScoreListening(); }, 10);
         return;
     }
 
@@ -6280,7 +6335,7 @@ function _applyVoiceScore(transcript) {
 
     _setVoiceStatus('Score ' + score + ' entered for ' + (currentClassData[form][_voiceCurrentIndex]['Exam Number'] || '') + '. Ready for next student.', '#2ecc71');
 
-    // Auto-advance: prepare for next student
+    // Auto-advance: prepare for next student — only on SUCCESS
     _voiceCurrentIndex = null;
     document.getElementById('voiceCurrentStudent').style.display = 'none';
 
