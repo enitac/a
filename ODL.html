@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Secondary Portal</title>
+  <title>Namitete Secondary Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -891,7 +891,29 @@ function saveSelectedSubjectsToRepo() {
         body { padding: 10px; }
         .page { padding: 15px; width: 98%; }
         #progressReport, #briefReport { padding: 20px 10px; width: 98%; }
-        
+
+        /* SURGICAL FIX: Full-width table on mobile with text wrapping — no cut-off words */
+        #progressReport #resultsTable {
+            width: 100% !important;
+            margin: 0 !important;
+            table-layout: auto !important;
+            font-size: 8pt !important;
+        }
+        #progressReport .table-wrapper {
+            width: 100% !important;
+            overflow-x: auto !important;
+            text-align: left !important;
+            -webkit-overflow-scrolling: touch;
+        }
+        #progressReport #resultsTable th,
+        #progressReport #resultsTable td {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            word-wrap: break-word !important;
+            padding: 5px 3px !important;
+        }
+
         .info-row { flex-direction: column; }
         .info-row p { width: 100%; text-align: left !important; }
         .actions { flex-direction: column; gap: 15px; }
