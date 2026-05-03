@@ -6240,14 +6240,26 @@ function _handleExamResult(transcript, form, subject) {
         if (cleaned === examNo) { matchIndex = i; break; }
     }
 
-    // Try partial match
+    // SURGICAL FIX: Precise digit-only exact matching — no more false substring matches
     if (matchIndex === -1) {
-        for (var i = 0; i < students.length; i++) {
-            var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
-            if (examNo.length > 1 && cleaned.length > 1) {
-                var numPart = examNo.replace(/^[A-Z]+/, '');
-                if (numPart && cleaned.indexOf(numPart) !== -1) { matchIndex = i; break; }
-                if (cleaned.indexOf(examNo) !== -1 || examNo.indexOf(cleaned) !== -1) { matchIndex = i; break; }
+        var spokenDigits = cleaned.replace(/[^0-9]/g, '');
+        if (spokenDigits.length > 0) {
+            var candidates = [];
+            for (var i = 0; i < students.length; i++) {
+                var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
+                var numPart = examNo.replace(/[^0-9]/g, '');
+                // Exact match on digits only — "047" must equal "047", NOT substring
+                if (numPart && spokenDigits === numPart) {
+                    candidates.push(i);
+                }
+            }
+            if (candidates.length === 1) {
+                matchIndex = candidates[0];
+            } else if (candidates.length > 1) {
+                // Multiple students share the same numeric part — reject as ambiguous
+                _setVoiceStatus('Ambiguous: "' + transcript + '" matches ' + candidates.length + ' students. Say the full exam number clearly.', '#e67e22');
+                _highlightRow(null);
+                return;
             }
         }
     }
