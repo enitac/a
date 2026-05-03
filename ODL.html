@@ -5752,20 +5752,20 @@ async function showStudentMarksList() {
         const snVal = s["SN"] || '';
         const sneVisible = currentConfig && currentConfig.sneColumnVisible !== false;
         const row = document.createElement('tr');
-        const inputDisabled = isLocked ? 'readonly style="width:80px;padding:6px;text-align:center;border:1px solid #e74c3c;border-radius:4px;background:#f5f5f5;color:#999;"' : 'oninput="updateStudentScore(\'' + form + '\', ' + i + ', \'' + subject + '\', this.value)" style="width:80px;padding:6px;text-align:center;border:1px solid #cc6600;border-radius:4px;"';
+        const inputDisabled = isLocked ? 'readonly style="width:80px;padding:6px;text-align:center;border:1px solid #e74c3c;border-radius:4px;background:#f5f5f5;color:#999;"' : 'oninput="updateStudentScore(\'' + form + '\', ' + i + ', \'' + subject + '\', this.value)" style="width:80px;padding:6px;text-align:center;border:2px solid #e91e8c;border-radius:8px;background:#fce4ec;color:#c2185b;font-weight:700;font-size:1em;"';
         row.innerHTML = `
-            <td style="border:1px solid #cc6600;padding:8px;text-align:center;">${examNo}</td>
-            <td style="border:1px solid #cc6600;padding:8px;text-align:left;">${name}</td>
-            <td style="border:1px solid #cc6600;padding:8px;text-align:center;width:40px;">${sex}</td>
-            ${sneVisible ? `<td style="border:1px solid #cc6600;padding:8px;text-align:center;width:30px;">
+            <td style="border:2px solid #6c3483;padding:8px 6px;text-align:center;background:#f3e5f5;font-weight:600;font-size:0.9em;">${examNo}</td>
+            <td style="border:2px solid #6c3483;padding:8px 6px;text-align:left;background:#f5f5f5;font-size:0.9em;">${name}</td>
+            <td style="border:2px solid #6c3483;padding:8px 6px;text-align:center;width:40px;background:#ede7f6;font-weight:600;font-size:0.9em;">${sex}</td>
+            ${sneVisible ? `<td style="border:2px solid #6c3483;padding:8px 6px;text-align:center;width:30px;background:#ede7f6;font-size:0.85em;">
                 <input type="text" 
                        id="sn_${i}" 
                        value="${snVal}" 
                        oninput="updateStudentSN('${form}', ${i}, this.value)"
-                       style="width:35px;padding:4px;text-align:center;border:1px solid #cc6600;border-radius:4px;font-size:0.85em;"
+                       style="width:35px;padding:4px;text-align:center;border:2px solid #6c3483;border-radius:6px;font-size:0.85em;background:#f3e5f5;"
                        placeholder=" ">
             </td>` : ''}
-            <td style="border:1px solid #cc6600;padding:8px;text-align:center;">
+            <td style="border:2px solid #6c3483;padding:8px 6px;text-align:center;background:#fce4ec;">
                 <input type="text" 
                        id="score_${i}" 
                        value="${val}" 
@@ -6344,11 +6344,25 @@ function _matchExamNumber(transcript, form, subject) {
     // Clean transcript: remove spaces, dots, dashes, common speech artifacts
     var cleaned = transcript.replace(/[\s.\-_,]/g, '');
 
-    // Try direct match first
+    // Pad leading zeros for numeric comparison (e.g. '25' becomes '025' if exam numbers are 3-digit)
+    var cleanedPadded = cleaned;
+    if (/^[0-9]+$/.test(cleaned)) {
+        // Find the max digit length among all exam numbers
+        var maxDigits = 0;
+        for (var k = 0; k < students.length; k++) {
+            var rawExam = (students[k]['Exam Number'] || '').replace(/[^0-9]/g, '');
+            if (rawExam.length > maxDigits) maxDigits = rawExam.length;
+        }
+        if (maxDigits > cleaned.length) {
+            cleanedPadded = cleaned.padStart(maxDigits, '0');
+        }
+    }
+
+    // Try direct match first (with padded version too)
     var matchIndex = -1;
     for (var i = 0; i < students.length; i++) {
         var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
-        if (cleaned === examNo) {
+        if (cleaned === examNo || cleanedPadded === examNo) {
             matchIndex = i;
             break;
         }
@@ -6358,15 +6372,16 @@ function _matchExamNumber(transcript, form, subject) {
     if (matchIndex === -1) {
         for (var i = 0; i < students.length; i++) {
             var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
-            if (examNo.length > 1 && cleaned.length > 1) {
+            if (examNo.length > 1 && (cleaned.length > 1 || cleanedPadded.length > 1)) {
                 // Check if transcript ends with the numeric part
                 var numPart = examNo.replace(/^[A-Z]+/, '');
-                if (numPart && cleaned.indexOf(numPart) !== -1) {
+                if (numPart && (cleaned.indexOf(numPart) !== -1 || cleanedPadded.indexOf(numPart) !== -1)) {
                     matchIndex = i;
                     break;
                 }
-                // Check if transcript contains the full exam number
-                if (cleaned.indexOf(examNo) !== -1 || examNo.indexOf(cleaned) !== -1) {
+                // Check if transcript contains the full exam number (try both cleaned and padded)
+                if (cleaned.indexOf(examNo) !== -1 || examNo.indexOf(cleaned) !== -1 ||
+                    cleanedPadded.indexOf(examNo) !== -1 || examNo.indexOf(cleanedPadded) !== -1) {
                     matchIndex = i;
                     break;
                 }
