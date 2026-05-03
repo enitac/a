@@ -1740,7 +1740,7 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
     <!-- Voice Score Entry -->
     <div id="voiceControlPanel" style="margin-top:15px;padding:12px;border:2px dashed #8e44ad;border-radius:10px;background:#fdf5ff;">
         <p style="font-size:0.95em;color:#8e44ad;font-weight:700;margin-bottom:8px;">Voice Score Entry</p>
-        <p id="voiceStatus" style="font-size:0.82em;color:#555;margin-bottom:10px;">Beep 1 (low tone) = call exam number. Beep 2 (high tone) = call marks. Cycle repeats automatically.</p>
+        <p id="voiceStatus" style="font-size:0.82em;color:#555;margin-bottom:10px;">Beep 1 (low) = call exam number. Beep 2 (high) = call marks. Rows lock after score entered. Cancel unlocks all for editing. Retries until score is heard.</p>
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
             <button id="voiceExamBtn" onclick="startVoiceExamNumber()" style="background:#8e44ad;max-width:180px;display:flex;align-items:center;justify-content:center;gap:6px;">
                 <span style="font-size:1.3em;">&#127908;</span> Call Exam Number
@@ -5704,6 +5704,17 @@ async function showStudentMarksList() {
     // Apply SNE column visibility to header
     applySNEColumnToTable();
 
+    // FIX: Clear voice-locked rows when new class/subject is loaded
+    _voiceLockedRows = {};
+    _voiceCallActive = false;
+    _voiceCurrentIndex = null;
+    _voiceMode = 'exam';
+    _stopRecognition();
+    document.getElementById('voiceExamBtn').style.background = '#8e44ad';
+    document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Call Exam Number';
+    document.getElementById('voiceCurrentStudent').style.display = 'none';
+    _showRetryButton(false);
+
     // Auto-activate voice mic now that students are loaded
     setTimeout(function() { startVoiceExamNumber(true); }, 100);
 }
@@ -5757,6 +5768,56 @@ var _voiceCallActive = false;   // Whether the Call Exam Number button has been 
 var _voiceScoreRetryCount = 0;  // Track retry attempts for score listening
 var _voiceScoreMaxRetries = 3;  // Maximum retry attempts before giving up
 var _sharedAudioCtx = null;    // Shared AudioContext to prevent double-sound glitches
+var _voiceLockedRows = {};     // Tracks rows locked by voice entry: { rowIndex: true } — unlocked on Cancel
+
+// --- Lock a row after voice enters a score (prevent overwrite) ---
+function _lockRow(index) {
+    _voiceLockedRows[index] = true;
+    var scoreInput = document.getElementById('score_' + index);
+    if (scoreInput) {
+        scoreInput.readOnly = true;
+        scoreInput.removeAttribute('oninput');
+        scoreInput.style.border = '1px solid #28a745';
+        scoreInput.style.background = '#d4edda';
+        scoreInput.style.color = '#155724';
+        scoreInput.style.fontWeight = '700';
+    }
+    var tbody = document.getElementById('dataEntryTableBody');
+    var rows = tbody ? tbody.getElementsByTagName('tr') : [];
+    if (rows[index]) {
+        rows[index].style.background = '#e8f5e9';
+    }
+}
+
+// --- Unlock all voice-locked rows (called when Cancel is clicked) ---
+function _unlockAllVoiceRows() {
+    var form = document.getElementById('dataClassSelect').value;
+    var subject = document.getElementById('dataSubjectSelect').value;
+    Object.keys(_voiceLockedRows).forEach(function(idx) {
+        var i = parseInt(idx, 10);
+        _voiceLockedRows[idx] = false;
+        var scoreInput = document.getElementById('score_' + i);
+        if (scoreInput) {
+            scoreInput.readOnly = false;
+            scoreInput.setAttribute('oninput', "updateStudentScore('" + form + "', " + i + ", '" + subject + "', this.value)");
+            scoreInput.style.border = '1px solid #cc6600';
+            scoreInput.style.background = '';
+            scoreInput.style.color = '';
+            scoreInput.style.fontWeight = '';
+        }
+        var tbody = document.getElementById('dataEntryTableBody');
+        var rows = tbody ? tbody.getElementsByTagName('tr') : [];
+        if (rows[i]) {
+            rows[i].style.background = '';
+        }
+    });
+    _voiceLockedRows = {};
+}
+
+// --- Check if a row is locked by voice ---
+function _isRowLocked(index) {
+    return !!_voiceLockedRows[index];
+}
 
 function _getAudioCtx() {
     if (!_sharedAudioCtx) {
@@ -5816,10 +5877,12 @@ function _cancelVoiceEntry() {
     _voiceScoreRetryCount = 0;
     _showRetryButton(false);
     _highlightRow(null);
+    // FIX: Unlock all voice-locked rows so scores can be edited manually
+    _unlockAllVoiceRows();
     document.getElementById('voiceExamBtn').style.background = '#8e44ad';
     document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Call Exam Number';
     document.getElementById('voiceCurrentStudent').style.display = 'none';
-    _setVoiceStatus('Voice entry cancelled. Click "Call Exam Number" to start again.', '#555');
+    _setVoiceStatus('Voice entry cancelled. All locked rows unlocked for editing. Click "Call Exam Number" to start again.', '#555');
     _setVoiceHeard('');
 
 }
@@ -5838,12 +5901,59 @@ function _wordsToNumber(text) {
     if (/[0-9]/.test(input)) {
         return input.replace(/[^0-9]/g, '');
     }
+    // FIX: Handle compound spoken numbers like "twenty twenty five" = "2025"
+    // Strategy 1: Simple compound — each word maps to a number, concatenate them as digit strings
     var words = input.split(/[\s,]+/).filter(function(w) { return w.length > 0; });
+    
+    // Try digit-concat mode first (for exam numbers like "twenty twenty five")
+    var digitParts = [];
+    var currentPart = 0;
+    for (var i = 0; i < words.length; i++) {
+        var w = words[i];
+        if (w === 'AND' || w === '&' || w === 'A') continue;
+        if (wordMap[w] !== undefined) {
+            var val = parseInt(wordMap[w], 10);
+            if (val === 1000 || val === 100) {
+                // Multiplicative words — switch to standard parsing
+                digitParts = [];
+                break;
+            }
+            if (val >= 20) {
+                // Decade word (twenty, thirty...) — could be start of new part
+                if (currentPart > 0) {
+                    digitParts.push(String(currentPart));
+                    currentPart = 0;
+                }
+                currentPart = val;
+            } else if (val >= 10) {
+                // Teen word (ten, eleven...) — new part
+                if (currentPart > 0) {
+                    digitParts.push(String(currentPart));
+                    currentPart = 0;
+                }
+                digitParts.push(String(val));
+            } else {
+                // Single digit
+                currentPart += val;
+            }
+        }
+    }
+    if (currentPart > 0) digitParts.push(String(currentPart));
+    
+    // If we got multiple parts via compound mode, concatenate as digit strings
+    if (digitParts.length >= 2) {
+        var result = digitParts.join('');
+        // Zero-pad each part to at least 2 digits if it was a decade
+        // e.g., "twenty" = "20", "five" = "5" → "205"
+        return result;
+    }
+    
+    // Standard parsing (for scores like "seventy five" = 75)
     var total = 0;
     var current = 0;
     for (var i = 0; i < words.length; i++) {
         var w = words[i];
-        if (w === 'AND' || w === '&' || w === 'A') continue; // skip connectives
+        if (w === 'AND' || w === '&' || w === 'A') continue;
         if (wordMap[w] !== undefined) {
             var val = parseInt(wordMap[w], 10);
             if (val === 100) {
@@ -5852,15 +5962,13 @@ function _wordsToNumber(text) {
                 current = (current === 0 ? 1 : current) * 1000;
                 total += current;
                 current = 0;
-            } else if (val >= 20) {
-                current += val;
             } else {
                 current += val;
             }
         }
     }
     total += current;
-    if (total === 0) return null; // no number found
+    if (total === 0) return null;
     return String(total);
 }
 
@@ -5975,14 +6083,10 @@ function _startScoreListening() {
 
     scoreRecognition.onend = function() {
         _voiceRecognition = null;
-        // Auto-retry if still in score mode and haven't exceeded max retries
-        // (all retries are handled here to avoid double-retry from onerror + onend)
-        if (_voiceMode === 'score' && _voiceCallActive && _voiceScoreRetryCount < _voiceScoreMaxRetries) {
+        // FIX: Infinite auto-retry for score — keep going until a valid score is entered
+        if (_voiceMode === 'score' && _voiceCallActive) {
             _voiceScoreRetryCount++;
-            setTimeout(function() { _startScoreListening(); }, 10);
-        } else if (_voiceMode === 'score' && _voiceCallActive && _voiceScoreRetryCount >= _voiceScoreMaxRetries) {
-            _setVoiceStatus('Score not heard after ' + _voiceScoreMaxRetries + ' attempts. Click "Retry Score" or call next exam number.', '#e74c3c');
-            _showRetryButton(true);
+            setTimeout(function() { _startScoreListening(); }, 300);
         }
     };
 
@@ -6025,46 +6129,51 @@ function startVoiceExamNumber(silent) {
     _playSound1_CallExamNumber();
 
     recognition.onresult = function(event) {
-        // Try all alternatives to find one that contains a number
+        // FIX: Check all results (speech may split across multiple results)
         var bestTranscript = '';
         var bestNumeric = '';
-        for (var a = 0; a < event.results[0].length; a++) {
-            var raw = event.results[0][a].transcript.trim().toUpperCase();
-            var numStr = raw.replace(/[^0-9]/g, '');
-            var converted = _wordsToNumber(raw);
-            var hasDigits = numStr.length > 0;
-            var hasNumberWords = converted !== null;
-            if (hasDigits || hasNumberWords) {
-                bestTranscript = raw;
-                bestNumeric = hasDigits ? numStr : (converted || numStr);
-                break; // Use first alternative that contains a number
+        for (var r = 0; r < event.results.length; r++) {
+            for (var a = 0; a < event.results[r].length; a++) {
+                var raw = event.results[r][a].transcript.trim().toUpperCase();
+                var numStr = raw.replace(/[^0-9]/g, '');
+                var converted = _wordsToNumber(raw);
+                var hasDigits = numStr.length > 0;
+                var hasNumberWords = converted !== null;
+                if (hasDigits || hasNumberWords) {
+                    bestTranscript = raw;
+                    bestNumeric = hasDigits ? numStr : (converted || numStr);
+                    break;
+                }
+                if (r === 0 && a === 0) bestTranscript = raw; // fallback
             }
-            if (a === 0) bestTranscript = raw; // fallback to first result
+            if (bestNumeric) break;
         }
-        // If no alternative had a clear number, try converting the best transcript
+        // If no result had a clear number, try converting the best transcript
         if (!bestNumeric) {
             var converted = _wordsToNumber(bestTranscript);
             bestNumeric = converted || bestTranscript;
         }
         _setVoiceHeard(bestTranscript);
         _matchExamNumber(bestNumeric, form, subject);
-        // Do NOT reset button here — it stays active until calling is done
     };
 
     recognition.onerror = function(event) {
         console.warn('Speech error:', event.error);
-        if (event.error === 'no-speech') {
-            _setVoiceStatus('No speech detected. Try again.', '#e74c3c');
-        } else if (event.error === 'not-allowed') {
+        if (event.error === 'not-allowed') {
+            _voiceCallActive = false;
             _setVoiceStatus('Microphone access denied. Allow mic access in browser settings.', '#e74c3c');
         } else {
-            _setVoiceStatus('Error: ' + event.error + '. Try again.', '#e74c3c');
+            _setVoiceStatus('Error: ' + event.error + '. Retrying...', '#e74c3c');
         }
         // SURGICAL FIX: Keep button active on error — do not reset _voiceCallActive
     };
 
     recognition.onend = function() {
         _voiceRecognition = null;
+        // FIX: Auto-restart exam number listening if still active and no result processed yet
+        if (_voiceCallActive && _voiceMode === 'exam') {
+            setTimeout(function() { startVoiceExamNumber(true); }, 500);
+        }
     };
 
     recognition.start();
@@ -6113,6 +6222,18 @@ function _matchExamNumber(transcript, form, subject) {
         return;
     }
 
+    // FIX: Check if this student's row is already locked by voice (score already entered)
+    if (_isRowLocked(matchIndex)) {
+        var lockedStudent = students[matchIndex];
+        var lockedExamNo = lockedStudent['Exam Number'] || '';
+        var lockedName = lockedStudent["STUDENT'S NAME"] || 'Unknown';
+        _setVoiceStatus(lockedExamNo + ' (' + lockedName + ') already scored and locked! Call another exam number.', '#e67e22');
+        _highlightRow(matchIndex);
+        // Auto-restart listening for next exam number after a short pause
+        setTimeout(function() { startVoiceExamNumber(true); }, 1500);
+        return;
+    }
+
     // Found the student
     var student = students[matchIndex];
     _voiceCurrentIndex = matchIndex;
@@ -6150,25 +6271,17 @@ function _applyVoiceScore(transcript) {
 
     if (isNaN(score) || scoreStr === '') {
         _voiceScoreRetryCount++;
-        if (_voiceScoreRetryCount <= _voiceScoreMaxRetries) {
-            _setVoiceStatus('Could not understand "' + transcript + '". Auto-retrying (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')...', '#e67e22');
-            setTimeout(function() { _startScoreListening(); }, 10);
-        } else {
-            _setVoiceStatus('Could not understand score after ' + _voiceScoreMaxRetries + ' retries. Click "Retry Score" to try again.', '#e74c3c');
-            _showRetryButton(true);
-        }
+        // FIX: Infinite retries — keep trying until a valid score is entered
+        _setVoiceStatus('Could not understand "' + transcript + '". Retrying (' + _voiceScoreRetryCount + ')...', '#e67e22');
+        setTimeout(function() { _startScoreListening(); }, 300);
         return;
     }
 
     if (score < 0 || score > 100) {
         _voiceScoreRetryCount++;
-        if (_voiceScoreRetryCount <= _voiceScoreMaxRetries) {
-            _setVoiceStatus('Invalid score (' + score + '). Auto-retrying (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')...', '#e67e22');
-            setTimeout(function() { _startScoreListening(); }, 10);
-        } else {
-            _setVoiceStatus('Invalid score after ' + _voiceScoreMaxRetries + ' retries. Click "Retry Score" to try again.', '#e74c3c');
-            _showRetryButton(true);
-        }
+        // FIX: Infinite retries — keep trying until a valid score is entered
+        _setVoiceStatus('Invalid score (' + score + '). Must be 0-100. Retrying (' + _voiceScoreRetryCount + ')...', '#e67e22');
+        setTimeout(function() { _startScoreListening(); }, 300);
         return;
     }
 
@@ -6182,14 +6295,18 @@ function _applyVoiceScore(transcript) {
         updateStudentScore(form, _voiceCurrentIndex, subject, String(score));
     }
 
-    _setVoiceStatus('Score ' + score + ' entered for ' + (currentClassData[form][_voiceCurrentIndex]['Exam Number'] || '') + '. Ready for next student.', '#2ecc71');
+    // FIX: Lock the row after score is entered to prevent overwrite
+    _lockRow(_voiceCurrentIndex);
+
+    var examNo = currentClassData[form][_voiceCurrentIndex]['Exam Number'] || '';
+    _setVoiceStatus('Score ' + score + ' entered for ' + examNo + '. Row locked. Ready for next student.', '#2ecc71');
 
     // Auto-advance: prepare for next student
+    var lockedIndex = _voiceCurrentIndex;
     _voiceCurrentIndex = null;
     document.getElementById('voiceCurrentStudent').style.display = 'none';
 
     // FAST TRANSITION: Immediately loop back to listening for next exam number
-    // The call button stays active (_voiceCallActive remains true) since calling is not done
     _highlightRow(null);
     startVoiceExamNumber(true); // silent=true so it doesn't show alerts
 }
