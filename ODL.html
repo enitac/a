@@ -1758,10 +1758,10 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
     <input type="text" id="dataSearchInput" placeholder="Search by name or exam number..." onkeyup="filterStudentMarks()" style="max-width:400px;margin-top:8px;">
 
     <!-- Voice Score Entry Toggle -->
-    <button id="voiceToggleBtn" onclick="toggleVoicePanel()" class="small-btn" style="background:#8e44ad;color:white;max-width:220px;margin-top:10px;margin-bottom:0;">Hide Voice Entry</button>
+    <button id="voiceToggleBtn" onclick="toggleVoicePanel()" class="small-btn" style="background:#2c3e50;color:white;max-width:220px;margin-top:10px;margin-bottom:0;">Show Voice Entry</button>
 
     <!-- Voice Score Entry -->
-    <div id="voiceControlPanel" style="margin-top:15px;padding:12px;border:2px dashed #8e44ad;border-radius:10px;background:#fdf5ff;">
+    <div id="voiceControlPanel" style="display:none;margin-top:15px;padding:12px;border:2px dashed #8e44ad;border-radius:10px;background:#fdf5ff;">
         <p style="font-size:0.95em;color:#8e44ad;font-weight:700;margin-bottom:8px;">Voice Score Entry</p>
         <p id="voiceStatus" style="font-size:0.82em;color:#555;margin-bottom:10px;">Click the mic button and call out the exam number.</p>
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
@@ -5796,8 +5796,7 @@ async function showStudentMarksList() {
     // Apply SNE column visibility to header
     applySNEColumnToTable();
 
-    // Auto-activate voice mic now that students are loaded
-    setTimeout(function() { startVoiceExamNumber(true); }, 100);
+    // Voice mic now activates when user clicks "Show Voice Entry" button
 }
 
 function updateStudentScore(form, index, subject, value) {
@@ -5840,7 +5839,7 @@ function filterStudentMarks(){
 // VOICE SCORE ENTRY
 
 // Toggle to hide/unhide the voice score entry panel
-var _voicePanelVisible = true;
+var _voicePanelVisible = false;
 function toggleVoicePanel() {
     var panel = document.getElementById('voiceControlPanel');
     var btn = document.getElementById('voiceToggleBtn');
@@ -5857,6 +5856,8 @@ function toggleVoicePanel() {
         panel.style.display = 'block';
         btn.textContent = 'Hide Voice Entry';
         btn.style.background = '#8e44ad';
+        // Auto-start exam number calling when unhidden
+        startVoiceExamNumber();
     }
     _voicePanelVisible = !_voicePanelVisible;
 }
