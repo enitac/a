@@ -1757,12 +1757,11 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
        style="background-color: #f8f9fa; color: #333; border: 1px solid #ddd; padding: 10px; border-radius: 5px; font-weight: bold;">
     <input type="text" id="dataSearchInput" placeholder="Search by name or exam number..." onkeyup="filterStudentMarks()" style="max-width:400px;margin-top:8px;">
 
-    <!-- Voice Score Entry Toggle Button -->
-    <button id="voiceToggleBtn" onclick="toggleVoicePanel()" type="button" style="background:#8e44ad;max-width:280px;display:flex;align-items:center;justify-content:center;gap:6px;margin:12px auto 0 auto;padding:10px;font-size:0.95em;color:#fff;">
-        <span style="font-size:1.2em;">&#127908;</span> Show Voice Score Entry
-    </button>
+    <!-- Voice Score Entry Toggle -->
+    <button id="voiceToggleBtn" onclick="toggleVoicePanel()" class="small-btn" style="background:#8e44ad;color:white;max-width:220px;margin-top:10px;margin-bottom:0;">Hide Voice Entry</button>
+
     <!-- Voice Score Entry -->
-    <div id="voiceControlPanel" style="margin-top:15px;padding:12px;border:2px dashed #8e44ad;border-radius:10px;background:#fdf5ff;display:none;">
+    <div id="voiceControlPanel" style="margin-top:15px;padding:12px;border:2px dashed #8e44ad;border-radius:10px;background:#fdf5ff;">
         <p style="font-size:0.95em;color:#8e44ad;font-weight:700;margin-bottom:8px;">Voice Score Entry</p>
         <p id="voiceStatus" style="font-size:0.82em;color:#555;margin-bottom:10px;">Click the mic button and call out the exam number.</p>
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
@@ -5752,16 +5751,8 @@ async function showStudentMarksList() {
         
         const snVal = s["SN"] || '';
         const sneVisible = currentConfig && currentConfig.sneColumnVisible !== false;
-        const isVoiceLocked = _voiceLockedScores.has(i);
         const row = document.createElement('tr');
-        let inputAttrs;
-        if (isLocked) {
-            inputAttrs = 'readonly style="width:80px;padding:6px;text-align:center;border:1px solid #e74c3c;border-radius:4px;background:#f5f5f5;color:#999;"';
-        } else if (isVoiceLocked) {
-            inputAttrs = 'readonly style="width:80px;padding:6px;text-align:center;border:1px solid #8e44ad;border-radius:4px;background:#f3e5f5;color:#4a148c;font-weight:700;"';
-        } else {
-            inputAttrs = 'oninput="updateStudentScore(\'' + form + '\', ' + i + ', \'' + subject + '\', this.value)" style="width:80px;padding:6px;text-align:center;border:1px solid #cc6600;border-radius:4px;"';
-        }
+        const inputDisabled = isLocked ? 'readonly style="width:80px;padding:6px;text-align:center;border:1px solid #e74c3c;border-radius:4px;background:#f5f5f5;color:#999;"' : 'oninput="updateStudentScore(\'' + form + '\', ' + i + ', \'' + subject + '\', this.value)" style="width:80px;padding:6px;text-align:center;border:1px solid #cc6600;border-radius:4px;"';
         row.innerHTML = `
             <td style="border:1px solid #cc6600;padding:8px;text-align:center;">${examNo}</td>
             <td style="border:1px solid #cc6600;padding:8px;text-align:left;">${name}</td>
@@ -5778,7 +5769,7 @@ async function showStudentMarksList() {
                 <input type="text" 
                        id="score_${i}" 
                        value="${val}" 
-                       ${inputAttrs}
+                       ${inputDisabled}
                        placeholder=" ">
             </td>
         `;
@@ -5805,11 +5796,8 @@ async function showStudentMarksList() {
     // Apply SNE column visibility to header
     applySNEColumnToTable();
 
-    // Auto-activate voice mic only if voice panel is visible
-    var voicePanel = document.getElementById('voiceControlPanel');
-    if (voicePanel && voicePanel.style.display !== 'none') {
-        setTimeout(function() { startVoiceExamNumber(true); }, 100);
-    }
+    // Auto-activate voice mic now that students are loaded
+    setTimeout(function() { startVoiceExamNumber(true); }, 100);
 }
 
 function updateStudentScore(form, index, subject, value) {
@@ -5850,6 +5838,28 @@ function filterStudentMarks(){
 
 // ============================================================
 // VOICE SCORE ENTRY
+
+// Toggle to hide/unhide the voice score entry panel
+var _voicePanelVisible = true;
+function toggleVoicePanel() {
+    var panel = document.getElementById('voiceControlPanel');
+    var btn = document.getElementById('voiceToggleBtn');
+    if (!panel || !btn) return;
+    if (_voicePanelVisible) {
+        panel.style.display = 'none';
+        btn.textContent = 'Show Voice Entry';
+        btn.style.background = '#2c3e50';
+        // Cancel any active voice session when hiding
+        if (_voiceCallActive) {
+            _cancelVoiceEntry();
+        }
+    } else {
+        panel.style.display = 'block';
+        btn.textContent = 'Hide Voice Entry';
+        btn.style.background = '#8e44ad';
+    }
+    _voicePanelVisible = !_voicePanelVisible;
+}
 // Uses Web Speech API to call out exam numbers and scores
 // ============================================================
 
@@ -5857,14 +5867,68 @@ var _voiceCurrentRow = null;    // The <tr> element currently highlighted
 var _voiceCurrentIndex = null;  // Index into currentClassData
 var _voiceRecognition = null;   // Active SpeechRecognition instance
 var _voiceMode = 'exam';        // 'exam' or 'score'
-var _voiceCallActive = false;   // Whether voice session is running (until cancelled)
+var _voiceCallActive = false;   // Whether the Call Exam Number button has been activated (remains true until done)
 var _voiceScoreRetryCount = 0;  // Track retry attempts for score listening
-var _voiceLockedScores = new Set(); // Tracks indices of scores entered by voice (locked against overwrite)
+var _voiceScoreProcessed = false; // SURGICAL FIX: Track if onresult fired to prevent double-retry
+var _voiceScoreMaxRetries = 10; // Max retry attempts for score listening
+var _voiceLockedIndices = {};   // Row indices locked by voice entry this session (keyed by index) — only cleared on cancel
+var _suppressExamRestart = false; // Flag: when true, onend handler must NOT auto-restart exam listening
 var _sharedAudioCtx = null;    // Shared AudioContext to prevent double-sound glitches
-var _voiceSessionRunning = false; // True when recognition.start() succeeded — prevents duplicate starts
-var _voiceExamSoundPlayed = false; // Sound played once per exam-number-found event
-var _voiceScoreSoundPlayed = false; // Sound played once per score-prompt event
-var _voiceBusy = false;  // Guard: prevent onresult from re-entering while processing
+
+// --- Freeze scored rows during voice calling to prevent accidental overwrites ---
+function _freezeScoredRows(keepActiveIndex) {
+    var tbody = document.getElementById('dataEntryTableBody');
+    if (!tbody) return;
+    var rows = tbody.getElementsByTagName('tr');
+    for (var i = 0; i < rows.length; i++) {
+        var input = document.getElementById('score_' + i);
+        if (!input) continue;
+        if (i === keepActiveIndex) continue; // Keep current student's input editable
+        var shouldLock = false;
+        // Always lock voice-locked rows (scored during this voice session)
+        if (_voiceLockedIndices[i]) {
+            shouldLock = true;
+        }
+        // If the input already has a score value, freeze it
+        if (input.value && input.value.trim() !== '' && !input.readOnly) {
+            shouldLock = true;
+        }
+        if (shouldLock) {
+            input.readOnly = true;
+            input.tabIndex = -1; // Prevent keyboard tab focus
+            input.style.background = '#e8e8e8';
+            input.style.border = '1px solid #bbb';
+            input.style.color = '#777';
+            input.style.cursor = 'not-allowed';
+            input.setAttribute('data-voicelocked', 'true');
+        }
+    }
+}
+
+function _unfreezeAllRows() {
+    var form = document.getElementById('dataClassSelect').value;
+    var subject = document.getElementById('dataSubjectSelect').value;
+    // Check if this subject is locked for this class
+    var isLocked = currentConfig && currentConfig.locks && currentConfig.locks[form] && currentConfig.locks[form][subject];
+    var tbody = document.getElementById('dataEntryTableBody');
+    if (!tbody) return;
+    var rows = tbody.getElementsByTagName('tr');
+    for (var i = 0; i < rows.length; i++) {
+        var input = document.getElementById('score_' + i);
+        if (!input) continue;
+        if (isLocked) continue; // Keep locked subjects readonly
+        if (input.readOnly) {
+            input.readOnly = false;
+            input.tabIndex = 0; // Restore keyboard tab focus
+            input.style.background = '';
+            input.style.border = '1px solid #cc6600';
+            input.style.color = '';
+            input.style.cursor = '';
+            input.removeAttribute('data-voicelocked');
+            input.onfocus = null;
+        }
+    }
+}
 
 function _getAudioCtx() {
     if (!_sharedAudioCtx) {
@@ -5894,7 +5958,7 @@ function _playSound1_CallExamNumber() {
     } catch (e) {}
 }
 
-// --- Sound 2: single dong — call score (shortened for faster transitions) ---
+// --- Sound 2: single dong — call score (ultra-short for faster transitions) ---
 function _playSound2_CallScore() {
     try {
         var ctx = _getAudioCtx();
@@ -5902,32 +5966,52 @@ function _playSound2_CallScore() {
         var gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.value = 1047;
-        gain.gain.setValueAtTime(0.4, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.08);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.35, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.06);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.12);
+        osc.stop(ctx.currentTime + 0.06);
     } catch (e) {}
 }
 
 
 
-// --- SURGICAL FIX: Cancel voice entry and reset buttons ---
+// --- Click blocker: prevents user from focusing/typing in voice-locked score inputs ---
+var _clickBlockerInstalled = false;
+function _installClickBlocker() {
+    if (_clickBlockerInstalled) return;
+    _clickBlockerInstalled = true;
+    document.addEventListener('click', function(e) {
+        var target = e.target;
+        if (target && target.getAttribute && target.getAttribute('data-voicelocked') === 'true') {
+            e.preventDefault();
+            e.stopPropagation();
+            target.blur();
+            _setVoiceStatus('Row locked. Click Cancel to unlock.', '#e67e22');
+        }
+    }, true);
+}
+
+function _removeClickBlocker() {
+    _clickBlockerInstalled = false;
+}
+
+// --- Cancel voice entry and reset buttons ---
 function _cancelVoiceEntry() {
     _stopRecognition();
     _voiceCallActive = false;
-    _voiceSessionRunning = false;
     _voiceMode = 'exam';
     _voiceCurrentIndex = null;
     _voiceCurrentRow = null;
     _voiceScoreRetryCount = 0;
-    _voiceBusy = false;
-    _voiceExamSoundPlayed = false;
-    _voiceScoreSoundPlayed = false;
+    _voiceLockedIndices = {}; // Clear voice-locked indices — editing is possible again
     _showRetryButton(false);
     _highlightRow(null);
+    // Remove click blocker
+    _removeClickBlocker();
+    // Unfreeze all scored rows so editing is possible again
+    _unfreezeAllRows();
     document.getElementById('voiceExamBtn').style.background = '#8e44ad';
     document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Call Exam Number';
     document.getElementById('voiceCurrentStudent').style.display = 'none';
@@ -5935,32 +6019,16 @@ function _cancelVoiceEntry() {
     _setVoiceHeard('');
 }
 
-// --- SURGICAL FIX: Toggle voice panel visibility ---
-function toggleVoicePanel() {
-    var panel = document.getElementById('voiceControlPanel');
-    var btn = document.getElementById('voiceToggleBtn');
-    if (panel.style.display === 'none') {
-        panel.style.display = 'block';
-        btn.innerHTML = '<span style="font-size:1.2em;">&#128064;</span> Hide Voice Score Entry';
-        _setVoiceStatus('Voice entry activated. Mic is open — call out exam numbers.', '#2ecc71');
-        // Auto-start continuous voice session when panel is shown
-        startVoiceExamNumber(false);
-    } else {
-        panel.style.display = 'none';
-        btn.innerHTML = '<span style="font-size:1.2em;">&#127908;</span> Show Voice Score Entry';
-        _cancelVoiceEntry();
-    }
-}
-
 function _wordsToNumber(text) {
     // Convert spoken number words into digit strings for accurate matching
     var wordMap = {
-        'ZERO':'0','ONE':'1','TWO':'2','TOO':'2','TO':'2','THREE':'3','FREE':'3','FOUR':'4','FOR':'4',
-        'FIVE':'5','SIX':'6','SEVEN':'7','EIGHT':'8','ATE':'8','NINE':'9','TEN':'10','ELEVEN':'11',
+        'ZERO':'0','ZIRO':'0','ONE':'1','WON':'1','TWO':'2','TOO':'2','TO':'2','THREE':'3','FREE':'3','TREE':'3',
+        'FOUR':'4','FOR':'4','FORE':'4','FIVE':'5','SIX':'6','SEVEN':'7','SEVREN':'7','SEVIN':'7',
+        'EIGHT':'8','ATE':'8','AIGHT':'8','NINE':'9','TEN':'10','ELEVEN':'11',
         'TWELVE':'12','THIRTEEN':'13','FOURTEEN':'14','FIFTEEN':'15','SIXTEEN':'16','SEVENTEEN':'17',
-        'EIGHTEEN':'18','NINETEEN':'19','TWENTY':'20','THIRTY':'30','FORTY':'40','FIFTY':'50',
+        'EIGHTEEN':'18','NINETEEN':'19','TWENTY':'20','TWENNY':'20','THIRTY':'30','FORTY':'40','FIFTY':'50',
         'SIXTY':'60','SEVENTY':'70','EIGHTY':'80','NINETY':'90','HUNDRED':'100','THOUSAND':'1000'
-    };
+       };
     var input = text.toUpperCase().trim();
     // If it already contains digits, just strip non-digits and return
     if (/[0-9]/.test(input)) {
@@ -5999,7 +6067,7 @@ function _getSpeechRecognition() {
         return null;
     }
     var recognition = new SR();
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
     recognition.maxAlternatives = 5;
@@ -6069,7 +6137,6 @@ function _stopRecognition() {
         try { _voiceRecognition.abort(); } catch(e) {}
         _voiceRecognition = null;
     }
-    _voiceSessionRunning = false;
 }
 
 // --- Show or hide the Retry Score button ---
@@ -6086,88 +6153,21 @@ function _manualRetryScore() {
     _startScoreListening();
 }
 
-// --- Helper: switch to score-listening mode (reuse existing recognition, keep mic open) ---
+// --- Helper: start listening for score with auto-retry ---
 function _startScoreListening() {
     _voiceMode = 'score';
-    _voiceScoreSoundPlayed = false; // Reset so sound plays once for this score prompt
-    _setVoiceStatus('Listening for score... Speak the number now.', '#e67e22');
-    // Do NOT create a new recognition — the persistent one is already running.
-    // The unified onresult handler will pick up the next result in 'score' mode.
-}
+    _voiceScoreProcessed = false; // SURGICAL FIX: Reset flag for each new listening session
+    var scoreRecognition = _getSpeechRecognition();
+    if (!scoreRecognition) return;
+    _voiceRecognition = scoreRecognition;
 
-function startVoiceExamNumber(silent) {
-    // SURGICAL FIX: If already active, clicking again cancels the entire voice session
-    if (_voiceCallActive && !silent) {
-        _cancelVoiceEntry();
-        return;
-    }
-    // If recognition is already running (e.g. from auto-start), just switch mode
-    if (_voiceCallActive && _voiceRecognition && silent) {
-        _voiceMode = 'exam';
-        _voiceExamSoundPlayed = false;
-        _setVoiceStatus('Listening for exam number... Speak now.', '#8e44ad');
-        _setVoiceHeard('');
-        document.getElementById('voiceCurrentStudent').style.display = 'none';
-        return;
-    }
+    var retryMsg = _voiceScoreRetryCount > 0 ? ' (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')' : '';
+    _setVoiceStatus('Say score...' + retryMsg, '#e67e22');
 
-    var form = document.getElementById('dataClassSelect').value;
-    var subject = document.getElementById('dataSubjectSelect').value;
-
-    // Always activate the call button visually when called from toggleVoicePanel
-    document.getElementById('voiceExamBtn').style.background = '#6c3483';
-    document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Cancel Calling';
-
-    if (!form || !subject) {
-        if (!silent) {
-            _voiceCallActive = true; // Mark active so button stays in cancel state
-            _setVoiceStatus('Select a Class and Subject first, then mic will start listening.', '#e67e22');
-        }
-        return;
-    }
-    var panel = document.getElementById('studentMarksPanel');
-    if (panel && panel.classList.contains('hidden')) {
-        if (!silent) {
-            _voiceCallActive = true;
-            _setVoiceStatus('Load students first (select class and subject), then mic will start.', '#e67e22');
-        }
-        return;
-    }
-
-    // Stop any previous recognition before starting fresh
-    _stopRecognition();
-    _voiceCallActive = true;
-
-    // SURGICAL FIX: Preserve voice mode during silent restart.
-    // When onend fires and recognition restarts (silent=true), the mode must NOT
-    // reset to 'exam' — otherwise a spoken score gets treated as an exam number.
-    if (!silent) {
-        _voiceMode = 'exam';
-        _voiceSessionRunning = false;
-        _voiceBusy = false;
-        _voiceExamSoundPlayed = false;
-        _voiceScoreSoundPlayed = false;
-        _voiceScoreRetryCount = 0;
-    }
-    // silent=true: keep _voiceMode as-is ('exam' or 'score'), keep student highlight
-
-    var recognition = _getSpeechRecognition();
-    if (!recognition) return;
-    _voiceRecognition = recognition;
-
-    // Only reset status and UI when starting a fresh (non-silent) session
-    if (!silent) {
-        _setVoiceStatus('Listening for exam number... Speak now.', '#8e44ad');
-        _setVoiceHeard('');
-        document.getElementById('voiceCurrentStudent').style.display = 'none';
-    }
-
-    // --- UNIFIED onresult handler: dispatches by _voiceMode ---
-    recognition.onresult = function(event) {
-        if (_voiceBusy) return; // Prevent re-entry while processing
-        _voiceBusy = true;
-
-        // Extract best numeric transcript from all alternatives
+    scoreRecognition.onresult = function(event) {
+        // SURGICAL FIX: Mark that onresult fired so onend doesn't double-retry
+        _voiceScoreProcessed = true;
+        // Try all alternatives to find one that contains a number
         var bestTranscript = '';
         var bestNumeric = '';
         for (var a = 0; a < event.results[0].length; a++) {
@@ -6179,189 +6179,342 @@ function startVoiceExamNumber(silent) {
             if (hasDigits || hasNumberWords) {
                 bestTranscript = raw;
                 bestNumeric = hasDigits ? numStr : (converted || numStr);
-                break;
+                break; // Use first alternative that contains a number
             }
-            if (a === 0) bestTranscript = raw;
+            if (a === 0) bestTranscript = raw; // fallback to first result
         }
-        // STRICT: Only process results that contain actual numbers — ignore all other words
-        if (!bestNumeric || !/^[0-9]+$/.test(bestNumeric)) {
-            // No number detected — ignore this utterance, stay in current mode
-            _voiceBusy = false;
-            return;
+        // If no alternative had a clear number, try converting the best transcript
+        if (!bestNumeric) {
+            var converted = _wordsToNumber(bestTranscript);
+            bestNumeric = converted || bestTranscript;
         }
         _setVoiceHeard(bestTranscript);
+        // SURGICAL FIX: Removed _voiceScoreRetryCount = 0 from here — only reset on valid score
+        _applyVoiceScore(bestNumeric);
+    };
 
-        if (_voiceMode === 'exam') {
-            _handleExamResult(bestNumeric, form, subject);
-        } else if (_voiceMode === 'score') {
-            _handleScoreResult(bestNumeric);
+    scoreRecognition.onerror = function(event) {
+        console.warn('Score speech error:', event.error);
+        if (event.error === 'not-allowed') {
+            _voiceCallActive = false;
+            _unfreezeAllRows(); // Unfreeze rows since calling is effectively stopped
+            _setVoiceStatus('Microphone access denied. Allow mic access in browser settings.', '#e74c3c');
+            _showRetryButton(true);
         }
+        // For 'no-speech', 'aborted', and other errors, stay silent — onend handles retry automatically
+        // Mic stays open, session continues uninterrupted
+    };
 
-        // Release busy flag after a short delay to let mode switch settle
-        setTimeout(function() { _voiceBusy = false; }, 200);
+    scoreRecognition.onend = function() {
+        // Only null out _voiceRecognition if it still points to THIS instance
+        // Prevents race condition when a newer recognition was already started
+        if (_voiceRecognition === scoreRecognition) {
+            _voiceRecognition = null;
+        }
+        // SURGICAL FIX: Only retry if onresult NEVER fired (no speech detected at all)
+        // If onresult did fire, _applyVoiceScore handles retrying — prevents double-retry race condition
+        if (_voiceMode === 'score' && _voiceCallActive && !_voiceScoreProcessed) {
+            // SURGICAL FIX: Check max retries — show "Score not responding" and return to exam mode
+            if (_voiceScoreRetryCount >= _voiceScoreMaxRetries) {
+                _setVoiceStatus('Score not responding. Returning to exam number...', '#e74c3c');
+                _voiceCurrentIndex = null;
+                document.getElementById('voiceCurrentStudent').style.display = 'none';
+                _setVoiceHeard('');
+                _highlightRow(null);
+                setTimeout(function() {
+                    if (_voiceCallActive) startVoiceExamNumber(true);
+                }, 1500);
+                return;
+            }
+            _voiceScoreRetryCount++;
+            if (_voiceScoreRetryCount <= 3) {
+                _setVoiceStatus('Say score... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#e67e22');
+            } else {
+                _setVoiceStatus('Say score... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#999');
+            }
+            // SURGICAL FIX: Increased delay from 10ms to 500ms to prevent rapid beep/message flashing
+            setTimeout(function() { _startScoreListening(); }, 500);
+        }
+    };
+
+    scoreRecognition.start();
+}
+
+function startVoiceExamNumber(silent) {
+    // SURGICAL FIX: If already active, clicking again cancels the entire voice session
+    if (_voiceCallActive && !silent) {
+        _cancelVoiceEntry();
+        return;
+    }
+
+    var form = document.getElementById('dataClassSelect').value;
+    var subject = document.getElementById('dataSubjectSelect').value;
+    if (!form || !subject) {
+        if (!silent) alert('Please select a Class and Subject first.');
+        return;
+    }
+    var panel = document.getElementById('studentMarksPanel');
+    if (panel && panel.classList.contains('hidden')) {
+        if (!silent) alert('No students loaded. Select class and subject to load students first.');
+        return;
+    }
+
+    _stopRecognition();
+    _voiceCallActive = true; // Mark as active — button stays active until done
+    _voiceMode = 'exam';
+    // Freeze rows that already have scores to prevent accidental overwrites
+    _freezeScoredRows(null);
+    // Add global click blocker on voice-locked inputs
+    _installClickBlocker();
+    var recognition = _getSpeechRecognition();
+    if (!recognition) return;
+    _voiceRecognition = recognition;
+
+    _setVoiceStatus('Listening for exam number... Speak now.', '#8e44ad');
+    _setVoiceHeard('');
+    document.getElementById('voiceCurrentStudent').style.display = 'none';
+    document.getElementById('voiceExamBtn').style.background = '#6c3483';
+    // SURGICAL FIX: Show Cancel label on the call button so user knows clicking it cancels
+    document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Cancel Calling';
+    // SURGICAL FIX: Play Sound 1 (single beep) only on first click, not on auto-restart
+    if (!silent) _playSound1_CallExamNumber();
+
+    recognition.onresult = function(event) {
+        // Try all alternatives to find one that contains a number
+        var bestTranscript = '';
+        var bestNumeric = '';
+        for (var a = 0; a < event.results[0].length; a++) {
+            var raw = event.results[0][a].transcript.trim().toUpperCase();
+            var numStr = raw.replace(/[^0-9]/g, '');
+            var converted = _wordsToNumber(raw);
+            var hasDigits = numStr.length > 0;
+            var hasNumberWords = converted !== null;
+            if (hasDigits || hasNumberWords) {
+                bestTranscript = raw;
+                bestNumeric = hasDigits ? numStr : (converted || numStr);
+                break; // Use first alternative that contains a number
+            }
+            if (a === 0) bestTranscript = raw; // fallback to first result
+        }
+        // If no alternative had a clear number, try converting the best transcript
+        if (!bestNumeric) {
+            var converted = _wordsToNumber(bestTranscript);
+            bestNumeric = converted || bestTranscript;
+        }
+        _setVoiceHeard(bestTranscript);
+        _matchExamNumber(bestNumeric, form, subject);
+        // Do NOT reset button here — it stays active until calling is done
     };
 
     recognition.onerror = function(event) {
         console.warn('Speech error:', event.error);
         if (event.error === 'not-allowed') {
-            _voiceCallActive = false;
-            _voiceSessionRunning = false;
             _setVoiceStatus('Microphone access denied. Allow mic access in browser settings.', '#e74c3c');
-        } else if (event.error !== 'no-speech') {
-            _setVoiceStatus('Error: ' + event.error + '. Listening...', '#e74c3c');
+        } else if (event.error === 'audio-capture') {
+            _setVoiceStatus('No microphone found. Check your device.', '#e67e22');
+        } else if (event.error === 'network') {
+            _setVoiceStatus('Network error. Still listening...', '#e67e22');
         }
-        _voiceBusy = false;
+        // For 'no-speech' and 'aborted', stay silent — onend restarts automatically
+        // Keep button active on ALL errors — do not reset _voiceCallActive
     };
 
     recognition.onend = function() {
-        _voiceSessionRunning = false;
-        _voiceRecognition = null;
-        // Keep mic alive: restart if session is still active (user hasn't cancelled)
-        if (_voiceCallActive) {
-            setTimeout(function() {
-                if (_voiceCallActive && !_voiceSessionRunning) {
-                    // Re-enter as silent to avoid re-checking form/subject
-                    startVoiceExamNumber(true);
-                }
-            }, 300);
+        // Only null out _voiceRecognition if it still points to THIS instance
+        // Prevents race condition when a newer recognition was already started
+        if (_voiceRecognition === recognition) {
+            _voiceRecognition = null;
+        }
+        // Keep listening for exam number — mic stays open until cancelled
+        // BUT do NOT restart if _suppressExamRestart is true (locked-row timeout already handling it)
+        if (_voiceMode === 'exam' && _voiceCallActive && !_suppressExamRestart) {
+            // Muted: don't show repetitive "still listening" messages
+            setTimeout(function() { startVoiceExamNumber(true); }, 10);
         }
     };
 
-    try {
-        recognition.start();
-        _voiceSessionRunning = true;
-    } catch (e) {
-        console.warn('recognition.start() failed:', e);
-        _voiceSessionRunning = false;
-    }
+    recognition.start();
 }
 
-// --- Handle exam number result (called from unified onresult) ---
-function _handleExamResult(transcript, form, subject) {
+function _matchExamNumber(transcript, form, subject) {
     var students = currentClassData[form];
-    if (!students) { _voiceMode = 'exam'; return; }
+    if (!students) return;
 
+    // Clean transcript: remove spaces, dots, dashes, common speech artifacts
     var cleaned = transcript.replace(/[\s.\-_,]/g, '');
 
-    // Try direct match
+    // Try direct match first
     var matchIndex = -1;
     for (var i = 0; i < students.length; i++) {
         var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
-        if (cleaned === examNo) { matchIndex = i; break; }
+        if (cleaned === examNo) {
+            matchIndex = i;
+            break;
+        }
     }
 
-    // SURGICAL FIX: Precise digit-only exact matching — no more false substring matches
+    // Try partial match (spoken number might miss a prefix letter)
     if (matchIndex === -1) {
-        var spokenDigits = cleaned.replace(/[^0-9]/g, '');
-        if (spokenDigits.length > 0) {
-            var candidates = [];
-            for (var i = 0; i < students.length; i++) {
-                var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
-                var numPart = examNo.replace(/[^0-9]/g, '');
-                // Exact match on digits only — "047" must equal "047", NOT substring
-                if (numPart && spokenDigits === numPart) {
-                    candidates.push(i);
+        for (var i = 0; i < students.length; i++) {
+            var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
+            if (examNo.length > 1 && cleaned.length > 1) {
+                // Check if transcript ends with the numeric part
+                var numPart = examNo.replace(/^[A-Z]+/, '');
+                if (numPart && cleaned.indexOf(numPart) !== -1) {
+                    matchIndex = i;
+                    break;
                 }
-            }
-            if (candidates.length === 1) {
-                matchIndex = candidates[0];
-            } else if (candidates.length > 1) {
-                // Multiple students share the same numeric part — reject as ambiguous
-                _setVoiceStatus('Ambiguous: "' + transcript + '" matches ' + candidates.length + ' students. Say the full exam number clearly.', '#e67e22');
-                _highlightRow(null);
-                return;
+                // Check if transcript contains the full exam number
+                if (cleaned.indexOf(examNo) !== -1 || examNo.indexOf(cleaned) !== -1) {
+                    matchIndex = i;
+                    break;
+                }
             }
         }
     }
 
     if (matchIndex === -1) {
-        _setVoiceStatus('Exam number "' + transcript + '" not found. Listening...', '#e74c3c');
+        _setVoiceStatus('Not found. Say again.', '#e74c3c');
         _highlightRow(null);
-        // Stay in exam mode — continuous mic will pick up the next utterance
         return;
     }
 
-    // Found the student — play sound ONCE, switch to score mode
+    // Found the student
     var student = students[matchIndex];
     _voiceCurrentIndex = matchIndex;
     _voiceCurrentRow = matchIndex;
     _highlightRow(matchIndex);
 
+    var matchedInput = document.getElementById('score_' + matchIndex);
+
+    // --- LOCK CHECK: If this row already has a score, it is locked — skip and keep listening ---
+    if (matchedInput && matchedInput.value && matchedInput.value.trim() !== '') {
+        _setVoiceStatus(student['Exam Number'] + ' done (' + matchedInput.value.trim() + '). Next...', '#999');
+        // Prevent onend from auto-restarting — WE will handle the restart after the delay
+        _suppressExamRestart = true;
+        setTimeout(function() {
+            _highlightRow(null);
+            _suppressExamRestart = false;
+            if (_voiceCallActive) startVoiceExamNumber(true);
+        }, 800); // Faster skip delay
+        return;
+    }
+
+    // Unfreeze the matched student's score input so voice can enter/edit the score
+    if (matchedInput) {
+        matchedInput.readOnly = false;
+        matchedInput.tabIndex = 0; // Restore keyboard focus
+        matchedInput.style.background = '';
+        matchedInput.style.border = '1px solid #cc6600';
+        matchedInput.style.color = '';
+        matchedInput.style.cursor = '';
+        matchedInput.removeAttribute('data-voicelocked');
+        matchedInput.onfocus = null; // Remove focus blocker
+    }
+
     var currentStudentEl = document.getElementById('voiceCurrentStudent');
     currentStudentEl.textContent = student['Exam Number'] + ' — ' + (student["STUDENT'S NAME"] || 'Unknown');
     currentStudentEl.style.display = 'block';
 
-    _setVoiceStatus('Student found! ' + student['Exam Number'] + ' — ' + (student["STUDENT'S NAME"] || 'Unknown'), '#2ecc71');
+    _setVoiceStatus('Calling score for ' + student['Exam Number'], '#2ecc71');
+    _setVoiceHeard('');
 
-    // Play sound ONCE for exam number found
-    if (!_voiceExamSoundPlayed) {
-        _playSound1_CallExamNumber();
-        _voiceExamSoundPlayed = true;
-    }
+    // Play Sound 2 to signal "Call Score"
+    _playSound2_CallScore();
 
-    // Switch to score mode — mic stays open, next utterance is treated as score
+    // FAST TRANSITION: Immediately start listening for score (no delay)
     _voiceScoreRetryCount = 0;
     _showRetryButton(false);
     _startScoreListening();
 }
 
-// --- Handle score result (called from unified onresult) ---
-function _handleScoreResult(transcript) {
+function startVoiceScoreEntry() {
+    // SURGICAL FIX: This button is now a CANCEL button — stop and reset voice entry
+    _cancelVoiceEntry();
+}
+
+function _applyVoiceScore(transcript) {
+    // Extract numeric score from transcript
     var scoreStr = transcript.replace(/[^0-9]/g, '');
     var score = parseInt(scoreStr, 10);
 
+    // SURGICAL FIX: Check max retries BEFORE retrying — prevents infinite beep/message loop
+    if (_voiceScoreRetryCount >= _voiceScoreMaxRetries) {
+        _setVoiceStatus('Score not responding. Returning to exam number...', '#e74c3c');
+        _voiceCurrentIndex = null;
+        document.getElementById('voiceCurrentStudent').style.display = 'none';
+        _setVoiceHeard('');
+        _highlightRow(null);
+        // Return to exam number listening after a pause
+        setTimeout(function() {
+            if (_voiceCallActive) startVoiceExamNumber(true);
+        }, 1500);
+        return;
+    }
+
     if (isNaN(score) || scoreStr === '') {
         _voiceScoreRetryCount++;
-        _setVoiceStatus('Could not understand score. Retry ' + _voiceScoreRetryCount + ' — speak the number clearly...', '#e67e22');
-        // Stay in score mode — cursor does NOT move, mic stays open for retry
+        _setVoiceStatus('Not heard. Say again... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#e67e22');
+        // SURGICAL FIX: Increased delay from 10ms to 500ms to prevent rapid message/beep flashing
+        setTimeout(function() { _startScoreListening(); }, 500);
         return;
     }
 
     if (score < 0 || score > 100) {
         _voiceScoreRetryCount++;
-        _setVoiceStatus('Invalid score (' + score + '). Retry ' + _voiceScoreRetryCount + ' — say a number between 0 and 100...', '#e67e22');
-        // Stay in score mode — cursor does NOT move, mic stays open for retry
+        _setVoiceStatus('Out of range (0-100). Say again... (' + _voiceScoreRetryCount + '/' + _voiceScoreMaxRetries + ')', '#e67e22');
+        // SURGICAL FIX: Increased delay from 10ms to 500ms to prevent rapid message/beep flashing
+        setTimeout(function() { _startScoreListening(); }, 500);
         return;
     }
 
-    // Valid score — apply it
-    _voiceScoreRetryCount = 0;
     var form = document.getElementById('dataClassSelect').value;
     var subject = document.getElementById('dataSubjectSelect').value;
 
+    // SURGICAL FIX: Reset retry count only when a valid score is about to be entered
+    _voiceScoreRetryCount = 0;
+
+    // Set the score in the input
     var scoreInput = document.getElementById('score_' + _voiceCurrentIndex);
     if (scoreInput && !scoreInput.readOnly) {
         scoreInput.value = score;
-        scoreInput.readOnly = true;
-        scoreInput.style.border = '1px solid #8e44ad';
-        scoreInput.style.background = '#f3e5f5';
-        scoreInput.style.color = '#4a148c';
-        scoreInput.style.fontWeight = '700';
-        _voiceLockedScores.add(_voiceCurrentIndex);
         updateStudentScore(form, _voiceCurrentIndex, subject, String(score));
     }
 
-    _setVoiceStatus('Score ' + score + ' entered for ' + (currentClassData[form][_voiceCurrentIndex]['Exam Number'] || '') + '. Ready for next student.', '#2ecc71');
+    // Mark this row as voice-locked so it cannot be re-accessed until calling is cancelled
+    _voiceLockedIndices[_voiceCurrentIndex] = true;
 
-    // Play sound ONCE for score prompt (next exam number)
-    if (!_voiceScoreSoundPlayed) {
-        _playSound2_CallScore();
-        _voiceScoreSoundPlayed = true;
+    // Lock the just-scored row so it can't be accidentally overwritten by misheard exam numbers
+    var justScoredInput = document.getElementById('score_' + _voiceCurrentIndex);
+    if (justScoredInput && justScoredInput.value && justScoredInput.value.trim() !== '') {
+        var form_check = document.getElementById('dataClassSelect').value;
+        var subject_check = document.getElementById('dataSubjectSelect').value;
+        var isLocked = currentConfig && currentConfig.locks && currentConfig.locks[form_check] && currentConfig.locks[form_check][subject_check];
+        if (!isLocked) {
+            justScoredInput.readOnly = true;
+            justScoredInput.tabIndex = -1; // Prevent keyboard tab focus
+            justScoredInput.style.background = '#e8e8e8';
+            justScoredInput.style.border = '1px solid #bbb';
+            justScoredInput.style.color = '#777';
+            justScoredInput.style.cursor = 'not-allowed';
+            justScoredInput.setAttribute('data-voicelocked', 'true');
+            // Block focus events on locked rows — user cannot click into them
+            justScoredInput.onfocus = function() { this.blur(); };
+        }
     }
 
-    // Auto-advance: switch back to exam mode for next student
+    // Brief success status only
+    _setVoiceStatus(score + ' ✓', '#2ecc71');
+
+    // Auto-advance: prepare for next student
     _voiceCurrentIndex = null;
     document.getElementById('voiceCurrentStudent').style.display = 'none';
-    _highlightRow(null);
-    _voiceMode = 'exam';
-    _voiceExamSoundPlayed = false;
-    _setVoiceStatus('Listening for exam number... Speak now.', '#8e44ad');
-    // Mic stays open — no restart needed, continuous mode picks up next utterance
-}
+    _setVoiceHeard('');
 
-function startVoiceScoreEntry() {
-    // SURGICAL FIX: This button is now a CANCEL button — stop and reset voice entry
-    _cancelVoiceEntry();
+    // FAST TRANSITION: Immediately loop back to listening for next exam number
+    // The call button stays active (_voiceCallActive remains true) since calling is not done
+    _highlightRow(null);
+    startVoiceExamNumber(true); // silent=true so it doesn't show alerts
 }
 
 // --- SNE COLUMN VISIBILITY FUNCTIONS ---
