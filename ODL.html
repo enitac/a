@@ -6252,7 +6252,9 @@ function _matchExamNumber(transcript, form, subject) {
     // SURGICAL FIX: Do NOT focus the score input during voice entry — it triggers the phone keyboard popup.
     // The voice system sets the score programmatically via _applyVoiceScore(), so focus is unnecessary.
 
-    // FIX: Brief delay after beep so teacher hears the signal before mic starts listening
+    // CRITICAL FIX: Set mode to 'score' IMMEDIATELY so exam recognition's onend
+    // does NOT restart exam listening (race condition was causing scores to be treated as exam numbers)
+    _voiceMode = 'score';
     _voiceScoreRetryCount = 0;
     _showRetryButton(false);
     _setVoiceStatus('Listening for marks... Speak now.', '#e67e22');
@@ -6271,19 +6273,21 @@ function _applyVoiceScore(transcript) {
 
     if (isNaN(score) || scoreStr === '') {
         _voiceScoreRetryCount++;
-        // FIX: Infinite retries — keep trying until a valid score is entered
-        _setVoiceStatus('Could not understand "' + transcript + '". Retrying (' + _voiceScoreRetryCount + ')...', '#e67e22');
-        setTimeout(function() { _startScoreListening(); }, 300);
+        // FIX: Let onend handle the restart — do NOT manually restart here to avoid double-recognition
+        _setVoiceStatus('Could not understand "' + transcript + '". Will retry...', '#e67e22');
         return;
     }
 
     if (score < 0 || score > 100) {
         _voiceScoreRetryCount++;
-        // FIX: Infinite retries — keep trying until a valid score is entered
-        _setVoiceStatus('Invalid score (' + score + '). Must be 0-100. Retrying (' + _voiceScoreRetryCount + ')...', '#e67e22');
-        setTimeout(function() { _startScoreListening(); }, 300);
+        // FIX: Let onend handle the restart — do NOT manually restart here to avoid double-recognition
+        _setVoiceStatus('Invalid score (' + score + '). Must be 0-100. Will retry...', '#e67e22');
         return;
     }
+
+    // CRITICAL FIX: Set mode to 'exam' BEFORE stopping recognition so score onend
+    // does NOT restart score listening after a valid score is entered
+    _voiceMode = 'exam';
 
     var form = document.getElementById('dataClassSelect').value;
     var subject = document.getElementById('dataSubjectSelect').value;
