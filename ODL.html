@@ -6380,7 +6380,10 @@ function _matchExamNumber(transcript, form, subject) {
             if (rawExam.length > maxDigits) maxDigits = rawExam.length;
         }
         if (maxDigits > cleaned.length) {
-            cleanedPadded = cleaned.padStart(maxDigits, '0');
+            // Manual pad (padStart may not exist in older browsers)
+            var pad = '';
+            for (var p = cleaned.length; p < maxDigits; p++) pad += '0';
+            cleanedPadded = pad + cleaned;
         }
     }
 
