@@ -6137,20 +6137,30 @@ function startVoiceExamNumber(silent) {
     // Stop any previous recognition before starting fresh
     _stopRecognition();
     _voiceCallActive = true;
-    _voiceMode = 'exam';
-    _voiceSessionRunning = false;
-    _voiceBusy = false;
-    _voiceExamSoundPlayed = false;
-    _voiceScoreSoundPlayed = false;
-    _voiceScoreRetryCount = 0;
+
+    // SURGICAL FIX: Preserve voice mode during silent restart.
+    // When onend fires and recognition restarts (silent=true), the mode must NOT
+    // reset to 'exam' — otherwise a spoken score gets treated as an exam number.
+    if (!silent) {
+        _voiceMode = 'exam';
+        _voiceSessionRunning = false;
+        _voiceBusy = false;
+        _voiceExamSoundPlayed = false;
+        _voiceScoreSoundPlayed = false;
+        _voiceScoreRetryCount = 0;
+    }
+    // silent=true: keep _voiceMode as-is ('exam' or 'score'), keep student highlight
 
     var recognition = _getSpeechRecognition();
     if (!recognition) return;
     _voiceRecognition = recognition;
 
-    _setVoiceStatus('Listening for exam number... Speak now.', '#8e44ad');
-    _setVoiceHeard('');
-    document.getElementById('voiceCurrentStudent').style.display = 'none';
+    // Only reset status and UI when starting a fresh (non-silent) session
+    if (!silent) {
+        _setVoiceStatus('Listening for exam number... Speak now.', '#8e44ad');
+        _setVoiceHeard('');
+        document.getElementById('voiceCurrentStudent').style.display = 'none';
+    }
 
     // --- UNIFIED onresult handler: dispatches by _voiceMode ---
     recognition.onresult = function(event) {
