@@ -865,7 +865,7 @@ function saveSelectedSubjectsToRepo() {
         70% { box-shadow: 0 0 0 10px rgba(142, 68, 173, 0); }
         100% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0); }
     }
-    #voiceExamBtn[style*="6c3483"] {
+    #voiceStartStopBtn[style*="e74c3c"] {
         animation: voicePulse 1.2s infinite;
     }
 
@@ -1757,24 +1757,11 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
        style="background-color: #f8f9fa; color: #333; border: 1px solid #ddd; padding: 10px; border-radius: 5px; font-weight: bold;">
     <input type="text" id="dataSearchInput" placeholder="Search by name or exam number..." onkeyup="filterStudentMarks()" style="max-width:400px;margin-top:8px;">
 
-    <!-- Voice Score Entry Toggle -->
-    <button id="voiceToggleBtn" onclick="toggleVoicePanel()" class="small-btn" style="background:#2c3e50;color:white;max-width:220px;margin-top:10px;margin-bottom:0;">Show Voice Entry</button>
-
-    <!-- Voice Score Entry -->
-    <div id="voiceControlPanel" style="display:none;margin-top:15px;padding:12px;border:2px dashed #8e44ad;border-radius:10px;background:#fdf5ff;">
-        <p style="font-size:0.95em;color:#8e44ad;font-weight:700;margin-bottom:8px;">Voice Score Entry</p>
-        <p id="voiceStatus" style="font-size:0.82em;color:#555;margin-bottom:10px;">Click the mic button and call out the exam number.</p>
-        <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
-            <button id="voiceExamBtn" onclick="startVoiceExamNumber()" style="background:#8e44ad;max-width:180px;display:flex;align-items:center;justify-content:center;gap:6px;">
-                <span style="font-size:1.3em;">&#127908;</span> Call Exam Number
-            </button>
-            <button id="voiceRetryBtn" onclick="_manualRetryScore()" style="background:#e67e22;max-width:160px;display:none;align-items:center;justify-content:center;gap:6px;color:#fff;border:none;border-radius:8px;padding:14px;font-size:1em;font-weight:600;cursor:pointer;">
-                &#128260; Retry Score
-            </button>
-        </div>
-        <p id="voiceCurrentStudent" style="font-size:1.15em;color:#1a2a6c;font-weight:700;margin-top:8px;display:none;background:#d4edda;padding:8px 12px;border-radius:8px;border:2px solid #28a745;"></p>
-        <p id="voiceHeardText" style="font-size:0.8em;color:#999;font-style:italic;margin-top:4px;"></p>
-    </div>
+    <!-- Voice Score Entry START/STOP -->
+    <button id="voiceStartStopBtn" onclick="toggleVoiceStartStop()" class="small-btn" style="background:#27ae60;color:white;max-width:220px;margin-top:10px;margin-bottom:0;font-size:1.2em;font-weight:800;padding:16px;">&#9654; START</button>
+    <p id="voiceStatus" style="font-size:0.82em;color:#999;margin-top:6px;">Click START to begin voice score entry.</p>
+    <p id="voiceCurrentStudent" style="font-size:1.05em;color:#1a2a6c;font-weight:700;margin-top:4px;display:none;background:#d4edda;padding:6px 12px;border-radius:8px;border:2px solid #28a745;"></p>
+    <p id="voiceHeardText" style="font-size:0.8em;color:#999;font-style:italic;margin-top:2px;"></p>
     
     <div id="studentMarksPanel" class="hidden">
         <div class="table-wrapper" style="margin-top:15px;">
@@ -5838,29 +5825,30 @@ function filterStudentMarks(){
 // ============================================================
 // VOICE SCORE ENTRY
 
-// Toggle to hide/unhide the voice score entry panel
-var _voicePanelVisible = false;
-function toggleVoicePanel() {
-    var panel = document.getElementById('voiceControlPanel');
-    var btn = document.getElementById('voiceToggleBtn');
-    if (!panel || !btn) return;
-    if (_voicePanelVisible) {
-        panel.style.display = 'none';
-        btn.textContent = 'Show Voice Entry';
-        btn.style.background = '#2c3e50';
-        // Cancel any active voice session when hiding
-        if (_voiceCallActive) {
-            _cancelVoiceEntry();
-        }
+// Single START/STOP button for voice score entry
+// Default: voice is OFF, button shows START (green)
+var _voiceIsRunning = false;
+function toggleVoiceStartStop() {
+    var btn = document.getElementById('voiceStartStopBtn');
+    if (!btn) return;
+    if (_voiceIsRunning) {
+        // STOP: cancel voice entry
+        _cancelVoiceEntry();
+        _voiceIsRunning = false;
+        btn.innerHTML = '&#9654; START';
+        btn.style.background = '#27ae60';
+        _setVoiceStatus('Voice entry stopped. Click START to begin.', '#999');
+        _setVoiceHeard('');
+        document.getElementById('voiceCurrentStudent').style.display = 'none';
     } else {
-        panel.style.display = 'block';
-        btn.textContent = 'Hide Voice Entry';
-        btn.style.background = '#8e44ad';
-        // Auto-start exam number calling when unhidden
+        // START: begin voice exam number calling
+        _voiceIsRunning = true;
+        btn.innerHTML = '&#9632; STOP';
+        btn.style.background = '#e74c3c';
         startVoiceExamNumber();
     }
-    _voicePanelVisible = !_voicePanelVisible;
 }
+
 // Uses Web Speech API to call out exam numbers and scores
 // ============================================================
 
@@ -6007,16 +5995,20 @@ function _cancelVoiceEntry() {
     _voiceCurrentRow = null;
     _voiceScoreRetryCount = 0;
     _voiceLockedIndices = {}; // Clear voice-locked indices — editing is possible again
-    _showRetryButton(false);
     _highlightRow(null);
     // Remove click blocker
     _removeClickBlocker();
     // Unfreeze all scored rows so editing is possible again
     _unfreezeAllRows();
-    document.getElementById('voiceExamBtn').style.background = '#8e44ad';
-    document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Call Exam Number';
+    // Update START/STOP button to START state
+    var btn = document.getElementById('voiceStartStopBtn');
+    if (btn) {
+        _voiceIsRunning = false;
+        btn.innerHTML = '&#9654; START';
+        btn.style.background = '#27ae60';
+    }
     document.getElementById('voiceCurrentStudent').style.display = 'none';
-    _setVoiceStatus('Voice entry cancelled. Click "Call Exam Number" to start again.', '#555');
+    _setVoiceStatus('Voice entry stopped. Click START to begin.', '#999');
     _setVoiceHeard('');
 }
 
@@ -6166,20 +6158,7 @@ function _stopRecognition() {
     }
 }
 
-// --- Show or hide the Retry Score button ---
-function _showRetryButton(show) {
-    var btn = document.getElementById('voiceRetryBtn');
-    if (btn) btn.style.display = show ? 'inline-flex' : 'none';
-}
-
-// --- Manual retry: user clicks "Retry Score" ---
-function _manualRetryScore() {
-    if (!_voiceCallActive || _voiceMode !== 'score') return;
-    _voiceScoreRetryCount = 0;
-    _showRetryButton(false);
-    _startScoreListening();
-}
-
+// --- Manual retry: user clicks STOP then START to retry ---
 // --- Helper: start listening for score with auto-retry ---
 function _startScoreListening() {
     _voiceMode = 'score';
@@ -6226,7 +6205,6 @@ function _startScoreListening() {
             _voiceCallActive = false;
             _unfreezeAllRows(); // Unfreeze rows since calling is effectively stopped
             _setVoiceStatus('Microphone access denied. Allow mic access in browser settings.', '#e74c3c');
-            _showRetryButton(true);
         }
         // For 'no-speech', 'aborted', and other errors, stay silent — onend handles retry automatically
         // Mic stays open, session continues uninterrupted
@@ -6300,9 +6278,13 @@ function startVoiceExamNumber(silent) {
     _setVoiceStatus('Listening for exam number... Speak now.', '#8e44ad');
     _setVoiceHeard('');
     document.getElementById('voiceCurrentStudent').style.display = 'none';
-    document.getElementById('voiceExamBtn').style.background = '#6c3483';
-    // SURGICAL FIX: Show Cancel label on the call button so user knows clicking it cancels
-    document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Cancel Calling';
+    // Update START/STOP button to show STOP
+    var btn = document.getElementById('voiceStartStopBtn');
+    if (btn) {
+        _voiceIsRunning = true;
+        btn.innerHTML = '&#9632; STOP';
+        btn.style.background = '#e74c3c';
+    }
     // SURGICAL FIX: Play Sound 1 (single beep) only on first click, not on auto-restart
     if (!silent) _playSound1_CallExamNumber();
 
@@ -6469,7 +6451,6 @@ function _matchExamNumber(transcript, form, subject) {
 
     // FAST TRANSITION: Immediately start listening for score (no delay)
     _voiceScoreRetryCount = 0;
-    _showRetryButton(false);
     _startScoreListening();
 }
 
