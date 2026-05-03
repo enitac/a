@@ -6023,8 +6023,8 @@ function _cancelVoiceEntry() {
 function _wordsToNumber(text) {
     // Convert spoken number words into digit strings for accurate matching
     var wordMap = {
-        'ZERO':'0','ZIRO':'0','ONE':'1','WON':'1','TWO':'2','TOO':'2','TO':'2','THREE':'3','FREE':'3','TREE':'3',
-        'FOUR':'4','FOR':'4','FORE':'4','FIVE':'5','FI':'5','FYF':'5','SIX':'6','SEVEN':'7','SEVREN':'7','SEVIN':'7',
+        'ZERO':'0','ZIRO':'0','OH':'0','O':'0','ONE':'1','WON':'1','TWO':'2','TOO':'2','TO':'2','THREE':'3','FREE':'3','TREE':'3',
+        'FOUR':'4','FOR':'4','FORE':'4','FIVE':'5','SIX':'6','SEVEN':'7','SEVREN':'7','SEVIN':'7',
         'EIGHT':'8','ATE':'8','AIGHT':'8','NINE':'9','TEN':'10','ELEVEN':'11',
         'TWELVE':'12','THIRTEEN':'13','FOURTEEN':'14','FIFTEEN':'15','SIXTEEN':'16','SEVENTEEN':'17',
         'EIGHTEEN':'18','NINETEEN':'19','TWENTY':'20','TWENNY':'20','THIRTY':'30','FORTY':'40','FIFTY':'50',
@@ -6036,11 +6036,37 @@ function _wordsToNumber(text) {
         return input.replace(/[^0-9]/g, '');
     }
     var words = input.split(/[\s,]+/).filter(function(w) { return w.length > 0; });
+
+    // DETECT DIGIT-BY-DIGIT MODE: if all words map to single digits (0-9), concatenate them
+    var allSingleDigits = true;
+    var digitChars = [];
+    for (var i = 0; i < words.length; i++) {
+        var w = words[i];
+        if (w === 'AND' || w === '&' || w === 'A') continue;
+        if (wordMap[w] !== undefined) {
+            var val = parseInt(wordMap[w], 10);
+            if (val >= 0 && val <= 9) {
+                digitChars.push(wordMap[w]);
+            } else {
+                allSingleDigits = false;
+                break;
+            }
+        } else {
+            allSingleDigits = false;
+            break;
+        }
+    }
+    // If 2+ single digits detected (e.g. "zero two five" -> "025"), return concatenated
+    if (allSingleDigits && digitChars.length > 1) {
+        return digitChars.join('');
+    }
+
+    // COMPOUND NUMBER MODE: e.g. "twenty five" -> 25
     var total = 0;
     var current = 0;
     for (var i = 0; i < words.length; i++) {
         var w = words[i];
-        if (w === 'AND' || w === '&' || w === 'A') continue; // skip connectives
+        if (w === 'AND' || w === '&' || w === 'A') continue;
         if (wordMap[w] !== undefined) {
             var val = parseInt(wordMap[w], 10);
             if (val === 100) {
@@ -6057,7 +6083,7 @@ function _wordsToNumber(text) {
         }
     }
     total += current;
-    if (total === 0) return null; // no number found
+    if (total === 0) return null;
     return String(total);
 }
 
@@ -6099,7 +6125,7 @@ function _getSpeechRecognition() {
                 + '| one hundred | one hundred and <number> '
                 + '| <digit> | <digit> <digit> | <digit> <digit> <digit> | <digit> <digit> <digit> <digit> '
                 + '| <digit> <digit> <digit> <digit> <digit>; '
-                + 'public <digit> = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;';
+                + 'public <digit> = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | oh | zero;';
             grammarList.addFromString(numGrammar, 100);
             recognition.grammars = grammarList;
         }
