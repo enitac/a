@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Namitete Secondary Portal</title>
+  <title>Magawa Secondary Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -786,10 +786,12 @@ function saveSelectedSubjectsToRepo() {
         width: 95%;
         max-width: 650px;
         min-height: auto;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1), 0 0 0 3px black, 0 0 0 5px white, 0 0 0 6px black;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
         margin: 20px auto;
         border: 3px double black;
         border-radius: 12px;
+        outline: 3px double black;
+        outline-offset: 3px;
     }
 
     /* On-screen batch print clone: rounded frame */
@@ -798,7 +800,7 @@ function saveSelectedSubjectsToRepo() {
         color: black;
         border: 3px double black;
         border-radius: 12px;
-        box-shadow: 0 0 0 3px black, 0 0 0 5px white, 0 0 0 6px black, 0 6px 20px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 0 0 3px black, 0 6px 20px rgba(0, 0, 0, 0.1);
     }
 
     #reportDetails div { color: black; }
@@ -822,18 +824,17 @@ function saveSelectedSubjectsToRepo() {
     }
 
     #reportGradeKeyTable {
-        width: 100%;
+        width: 50%;
         border-collapse: collapse;
         font-size: 8pt;
         border: 1px solid black;
         margin: 0;
-        text-align: left;
     }
 
     #reportGradeKeyTable th, #reportGradeKeyTable td {
         border: 1px solid black;
         padding: 2px 4px;
-        text-align: left;
+        text-align: center;
         background-color: white;
         vertical-align: middle;
         color: black;
@@ -864,7 +865,7 @@ function saveSelectedSubjectsToRepo() {
         70% { box-shadow: 0 0 0 10px rgba(142, 68, 173, 0); }
         100% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0); }
     }
-    #voiceExamBtn[style*="6c3483"] {
+    #voiceStartStopBtn[style*="e74c3c"] {
         animation: voicePulse 1.2s infinite;
     }
 
@@ -1026,9 +1027,7 @@ function saveSelectedSubjectsToRepo() {
             height: auto !important;
             margin: 0 !important;
             padding: 15px !important;
-            box-shadow: 0 0 0 3px black, 0 0 0 5px white, 0 0 0 6px black !important;
-            border: 3px double black !important;
-            border-radius: 12px !important;
+            box-shadow: none !important;
             font-size: 10pt;
             page-break-after: avoid !important;
             page-break-before: avoid !important;
@@ -1118,7 +1117,7 @@ function saveSelectedSubjectsToRepo() {
             margin: 1.1cm auto 0 auto !important;
             border: 3px double black !important;
             border-radius: 12px !important;
-            box-shadow: 0 0 0 3px black, 0 0 0 5px white, 0 0 0 6px black !important;
+            box-shadow: 0 0 0 3px black !important;
             page-break-after: always !important;
             page-break-inside: avoid !important;
             overflow: hidden !important;
@@ -1233,7 +1232,7 @@ function saveSelectedSubjectsToRepo() {
         }
 
         #batchPrintArea #reportGradeKeyTable {
-            width: 100% !important;
+            width: 50% !important;
             table-layout: fixed !important;
             border-collapse: collapse !important;
             margin: 0 !important;
@@ -1242,7 +1241,7 @@ function saveSelectedSubjectsToRepo() {
         #batchPrintArea #reportGradeKeyTable th,
         #batchPrintArea #reportGradeKeyTable td {
             width: 25% !important;
-            text-align: left !important;
+            text-align: center !important;
         }
 
         #batchPrintArea #gradeKeyTableNew {
@@ -1455,6 +1454,26 @@ function saveSelectedSubjectsToRepo() {
     }
 }
 
+/* SURGICAL FIX: Progress report results table horizontal scroll in portrait mode on mobile */
+@media (max-width: 480px) and (orientation: portrait) {
+    #progressReport .table-wrapper {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        width: 100% !important;
+    }
+    #progressReport #resultsTable {
+        table-layout: auto !important;
+        width: max-content !important;
+        min-width: 100%;
+    }
+    #progressReport #resultsTable th,
+    #progressReport #resultsTable td {
+        white-space: nowrap !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+}
+
 /* Landscape mobile horizontal scroll for mark/grade sheets */
 @media (max-width: 900px) and (orientation: landscape) {
     #scoreSheetView .table-wrapper,
@@ -1521,7 +1540,7 @@ function saveSelectedSubjectsToRepo() {
 </div>
 
 <div id="initialPage" class="page">
-    <img src="https://raw.githubusercontent.com/enitac/a/main/logo.png" alt="Secondary School Logo" class="logo">
+    <img src="https://raw.githubusercontent.com/magawass/m/main/logo.png" alt="Secondary School Logo" class="logo">
     <h1><p style="font-size:28px;">MAGAWA SECONDARY SCHOOL</p></h1>
     <h2>EXAM PORTAL</h2>
     <label for="selectedForm">Select Form / Sankhani Kalasi</label>
@@ -1558,9 +1577,9 @@ function saveSelectedSubjectsToRepo() {
     <button class="back-btn" onclick="handleBriefBack()" style="position: absolute; top: 10px; left: 10px; width: auto; padding: 5px 10px; max-width: none !important; margin: 0;">Back</button>
 
     <header id="briefReportHeader" style="width: 100%;">
-        <img src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt="School Logo">
+        <img src="https://raw.githubusercontent.com/magawass/m/main/logo.png" class="logo" alt="School Logo">
         <div id="briefReportHeaderRight">
-            <h3>SECONDARY SCHOOL</h3>
+            <h3>MAGAWA SECONDARY SCHOOL</h3>
             Private Bag 17,<br>
             MAGAWA,<br>
             MCHINJI.
@@ -1609,11 +1628,11 @@ function saveSelectedSubjectsToRepo() {
 
     <header id="reportHeader" style="width: 100%;">
         <img 
-src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt="School Logo">
+src="https://raw.githubusercontent.com/magawa/m/main/logo.png" class="logo" alt="School Logo">
         <div id="reportHeaderCenter">
             <div style="font-family: 'Times New Roman', Times, serif;">
  <div style="text-align: center;">
-<h1><p style="font-size:25px;">SECONDARY SCHOOL</p></h1>
+<h1><p style="font-size:25px;">MAGAWA SECONDARY SCHOOL</p></h1>
  <div style="text-align: center;">
 
                <p style="margin:5px 0; font-size: 14pt;"><strong>Private  Bag  17,<br>MAGAWA, MCHINJI.</strong><br>
@@ -1738,24 +1757,11 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
        style="background-color: #f8f9fa; color: #333; border: 1px solid #ddd; padding: 10px; border-radius: 5px; font-weight: bold;">
     <input type="text" id="dataSearchInput" placeholder="Search by name or exam number..." onkeyup="filterStudentMarks()" style="max-width:400px;margin-top:8px;">
 
-    <!-- Voice Score Entry Toggle -->
-    <button id="voiceToggleBtn" onclick="toggleVoicePanel()" class="small-btn" style="background:#8e44ad;color:white;max-width:220px;margin-top:10px;margin-bottom:0;">Hide Voice Entry</button>
-
-    <!-- Voice Score Entry -->
-    <div id="voiceControlPanel" style="margin-top:15px;padding:12px;border:2px dashed #8e44ad;border-radius:10px;background:#fdf5ff;">
-        <p style="font-size:0.95em;color:#8e44ad;font-weight:700;margin-bottom:8px;">Voice Score Entry</p>
-        <p id="voiceStatus" style="font-size:0.82em;color:#555;margin-bottom:10px;">Click the mic button and call out the exam number.</p>
-        <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
-            <button id="voiceExamBtn" onclick="startVoiceExamNumber()" style="background:#8e44ad;max-width:180px;display:flex;align-items:center;justify-content:center;gap:6px;">
-                <span style="font-size:1.3em;">&#127908;</span> Call Exam Number
-            </button>
-            <button id="voiceRetryBtn" onclick="_manualRetryScore()" style="background:#e67e22;max-width:160px;display:none;align-items:center;justify-content:center;gap:6px;color:#fff;border:none;border-radius:8px;padding:14px;font-size:1em;font-weight:600;cursor:pointer;">
-                &#128260; Retry Score
-            </button>
-        </div>
-        <p id="voiceCurrentStudent" style="font-size:1.15em;color:#1a2a6c;font-weight:700;margin-top:8px;display:none;background:#d4edda;padding:8px 12px;border-radius:8px;border:2px solid #28a745;"></p>
-        <p id="voiceHeardText" style="font-size:0.8em;color:#999;font-style:italic;margin-top:4px;"></p>
-    </div>
+    <!-- Voice Score Entry START/STOP -->
+    <button id="voiceStartStopBtn" onclick="toggleVoiceStartStop()" class="small-btn" style="background:#27ae60;color:white;max-width:220px;margin-top:10px;margin-bottom:0;font-size:1.2em;font-weight:800;padding:16px;">&#9654; START</button>
+    <p id="voiceStatus" style="font-size:0.82em;color:#999;margin-top:6px;">Click START to begin voice score entry.</p>
+    <p id="voiceCurrentStudent" style="font-size:1.05em;color:#1a2a6c;font-weight:700;margin-top:4px;display:none;background:#d4edda;padding:6px 12px;border-radius:8px;border:2px solid #28a745;"></p>
+    <p id="voiceHeardText" style="font-size:0.8em;color:#999;font-style:italic;margin-top:2px;"></p>
     
     <div id="studentMarksPanel" class="hidden">
         <div class="table-wrapper" style="margin-top:15px;">
@@ -1783,7 +1789,7 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
 </div>
 
 <div id="scoreSheetView" class="page">
-    <h2 id="markSheetHeader">SECONDARY SCHOOL - Mark Sheet - <span id="markSheetForm"></span> - Term <span id="markSheetTerm"></span></h2>
+    <h2 id="markSheetHeader">MAGAWA SECONDARY SCHOOL - Mark Sheet - <span id="markSheetForm"></span> - Term <span id="markSheetTerm"></span></h2>
 <input type="text" id="scoreSearchInput" placeholder="Search student..." onkeyup="filterScoreSheet()" style="max-width:300px;">
 
     <button onclick="openDataEntryPage()" style="position: absolute; top: 10px; left: 10px; width: auto; padding: 5px 10px; max-width: none !important; margin: 0;">Back</button>
@@ -2097,58 +2103,35 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
 <div id="archiveSearchResults" class="table-wrapper" style="margin-top:10px;"></div>
 
 <div id="archiveStudentDetail" class="hidden" style="margin-top:15px;">
-    <div id="archiveDetailContent" style="background:white;border:3px double black;outline:3px double black;outline-offset:3px;padding:20px 20px;width:95%;max-width:650px;margin:0 auto;color:black;">
-
-        <!-- Progress Report Header: Logo top center, then school name, then address -->
-        <header id="archiveReportHeader" style="width:100%;text-align:center;margin-bottom:5px;">
-            <img src="https://raw.githubusercontent.com/enitac/a/main/logo.png" style="max-width:150px;height:auto;display:block;margin:0 auto;" alt="School Logo">
-            <div style="font-family:'Times New Roman',Times,serif;">
-                <h3 style="font-size:1.3em;margin:5px 0 0 0;color:black;">MAGAWA SECONDARY SCHOOL</h3>
-                <p style="margin:2px 0 0 0;font-size:11pt;">Private Bag 17, Magawa, Mchinji</p>
-            </div>
+    <div id="archiveDetailContent" style="background:white;border:3px double black;outline:3px double black;outline-offset:3px;padding:25px 20px;width:95%;max-width:650px;margin:0 auto;color:black;">
+        <header id="archiveReportHeader" style="width:100%;text-align:center;">
+            <img src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt="School Logo">
+            <h3 style="font-size:1.3em;margin:0 0 5px 0;color:black;">MAGAWA SECONDARY SCHOOL</h3>
+            <p style="margin:5px 0;font-size:14pt;"><strong>Private Bag 17,<br>MAGAWA, MCHINJI.</strong></p>
         </header>
-
         <hr style="border-top:2px solid black;margin:10px 0;">
         <div style="text-align:center;">
-            <p style="font-size:10px;"><h3 style="margin:0;color:black;"><strong>STUDENT PROGRESS REPORT (ARCHIVED)</strong></h3></p>
+            <h2 style="margin:0;color:black;font-size:1.2em;"><strong>STUDENT PROGRESS REPORT</strong></h2>
         </div>
-
-        <!-- Student Details Row -->
-        <div id="archiveStudentInfo" style="margin-top:15px;text-align:left;font-size:11pt;color:black;">
-        </div>
-
-        <!-- Results Table (6 columns like front page progress report) -->
-        <div class="table-wrapper" style="overflow-x:auto;width:100%;margin-top:10px;text-align:left;-webkit-overflow-scrolling:touch;">
-            <table id="archiveResultsTable" style="width:100%;border-collapse:collapse;border:1px solid black;font-size:9pt;table-layout:fixed;">
+        <div id="archiveStudentInfo" style="text-align:left;margin-top:10px;font-size:11pt;color:black;"></div>
+        <div class="table-wrapper">
+            <table id="archiveResultsTable" style="width:100%;border-collapse:collapse;border:1px solid black;font-size:9pt;">
                 <thead>
                     <tr>
-                        <th style="border:1px solid black;padding:4px 3px;width:20%;">SUBJECT</th>
-                        <th style="border:1px solid black;padding:4px 3px;width:10%;">SCORE</th>
-                        <th style="border:1px solid black;padding:4px 3px;width:10%;">GRADE</th>
-                        <th style="border:1px solid black;padding:4px 3px;width:10%;">POSITION</th>
-                        <th style="border:1px solid black;padding:4px 3px;width:30%;">REMARKS</th>
-                        <th style="border:1px solid black;padding:4px 3px;width:20%;">TEACHER</th>
+                        <th style="width:20%;border:1px solid black;padding:4px 3px;">SUBJECT</th>
+                        <th style="width:10%;border:1px solid black;padding:4px 3px;">SCORE</th>
+                        <th style="width:10%;border:1px solid black;padding:4px 3px;">GRADE</th>
+                        <th style="width:10%;border:1px solid black;padding:4px 3px;">POSITION</th>
+                        <th style="width:30%;border:1px solid black;padding:4px 3px;">REMARKS</th>
+                        <th style="width:20%;border:1px solid black;padding:4px 3px;">TEACHER</th>
                     </tr>
                 </thead>
                 <tbody id="archiveResultsBody"></tbody>
             </table>
         </div>
-
-        <!-- Summary Section -->
-        <div id="archiveSummaryInfo" style="margin-top:15px;width:100%;text-align:left;"></div>
-
-        <!-- Comments Section -->
-        <div id="archiveCommentsSection" style="margin-top:10px;text-align:left;width:100%;">
-            <p style="margin:5px 0;"><strong>FORM TEACHER'S COMMENT:</strong> <span id="archiveTeacherComment" style="font-style:italic;"></span></p>
-            <p style="margin:5px 0;"><strong>HEADTEACHER'S COMMENT:</strong> <span id="archiveHeadComment" style="font-style:italic;"></span></p>
-            <p style="margin:5px 0;"><strong>NEXT TERM OPENS:</strong> <span id="archiveNextTerm"></span>&nbsp;&nbsp;&nbsp;<strong>FEES:</strong> <span id="archiveFees"></span></p>
-        </div>
-
-        <!-- Grade Key Section -->
-        <div id="archiveGradeKeySection" style="margin-top:10px;width:50%;text-align:left;">
-            <div id="archiveGradeKeyPlaceholder"></div>
-        </div>
-
+        <div id="archiveSummaryInfo" style="margin-top:10px;text-align:left;font-size:9pt;color:black;"></div>
+        <div id="archiveCommentsSection" style="margin-top:10px;text-align:left;width:100%;"></div>
+        <div id="archiveGradeKeySection" style="margin-top:10px;width:100%;text-align:left;"></div>
     </div>
     <div style="display:flex;justify-content:center;gap:10px;margin-top:15px;">
         <button onclick="printArchiveDetail()" class="small-btn" style="background:#17a2b8;color:white;max-width:150px;">Print Result</button>
@@ -2212,7 +2195,7 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
 </div>
 
 <div id="gradesPage" class="page">
-    <h2 id="gradeSheetHeader">SECONDARY SCHOOL - Grade Sheet - <span id="gradeSheetForm"></span> - Term <span id="gradeSheetTerm"></span></h2>
+    <h2 id="gradeSheetHeader">MAGAWA SECONDARY SCHOOL - Grade Sheet - <span id="gradeSheetForm"></span> - Term <span id="gradeSheetTerm"></span></h2>
 <input type="text" id="gradeSearchInput" placeholder="Search student..." onkeyup="filterGradeSheet()" style="max-width:300px;">
 
     <button onclick="openSheetsPage()" style="position: absolute; top: 10px; left: 10px; width: auto; padding: 5px 10px; max-width: none !important; margin: 0;">Back</button>
@@ -2252,7 +2235,7 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
 </div>
 
 <div id="analysisPage" class="page">
-    <h2 id="analysisTitle">SECONDARY SCHOOL - Form 2 Class Analysis Report</h2>
+    <h2 id="analysisTitle">MAGAWA SECONDARY SCHOOL - Form 2 Class Analysis Report</h2>
     <button onclick="openAnalysisSelector()" style="position: absolute; top: 10px; left: 10px; width: auto; padding: 5px 10px; max-width: none !important; margin: 0;">Back</button>
     <button onclick="printSheet('analysisPage')" class="small-btn" style="float: right; margin-top: 10px; max-width: 150px;">Print Analysis (Landscape)</button>
     <div id="analysisTableWrapper" class="table-wrapper"> </div>
@@ -2260,8 +2243,8 @@ src="https://raw.githubusercontent.com/enitac/a/main/logo.png" class="logo" alt=
 
 <script>
 // --- GITHUB CONSTANTS ---
-const GITHUB_USER = 'enitac';
-const GITHUB_REPO = 'a';
+const GITHUB_USER = 'magawass';
+const GITHUB_REPO = 'm';
 const CONFIG_FILE = 'config.json';
 // Admin password is now the decryption password — set during First-Time Setup
 // No hardcoded password stored in file
@@ -4386,15 +4369,17 @@ function viewArchivedStudent(index) {
     const year = match.year;
     const allStudents = match.allStudents;
 
-    // Populate student info line (matching progress report format)
-    document.getElementById('archiveStudentInfo').innerHTML = '<div style="margin:0 0 4px 0 !important;padding:0;text-align:left !important;font-size:11pt;color:black;">' +
-        '<p style="margin:0 0 4px 0 !important;"><strong>NAME:</strong> ' + (student["STUDENT'S NAME"] || '-') + '&nbsp;&nbsp;' +
-        '<strong>Exam No:</strong> ' + (student["Exam Number"] || '-') + '&nbsp;&nbsp;' +
-        '<strong>SEX:</strong> ' + (student["Sex"] || '-') + '&nbsp;&nbsp;' +
-        '<strong>FORM:</strong> ' + form.toUpperCase().replace('FORM', 'Form ') + '&nbsp;&nbsp;' +
-        '<strong>TERM:</strong> ' + term + '&nbsp;&nbsp;' +
-        '<strong>YEAR:</strong> ' + year +
-        '</p></div>';
+    // Populate student info — same layout as front page progress report
+    document.getElementById('archiveStudentInfo').innerHTML = `
+        <div style="margin:0 0 4px 0;font-size:11pt;color:black;line-height:1.6;">
+            <strong>NAME:</strong> <span>${student["STUDENT'S NAME"] || '-'}</span>&nbsp;&nbsp;
+            <strong>Exam No:</strong> <span>${student["Exam Number"] || '-'}</span>&nbsp;&nbsp;
+            <strong>SEX:</strong> <span>${student["Sex"] || '-'}</span>&nbsp;&nbsp;
+            <strong>FORM:</strong> <span>${form.toUpperCase().replace('FORM', 'Form ')}</span>&nbsp;&nbsp;
+            <strong>TERM:</strong> <span>${term}</span>&nbsp;&nbsp;
+            <strong>YEAR:</strong> <span>${year}</span>
+        </div>
+    `;
 
     // Compute subject positions from all students in the archived file
     const subjectPositions = {};
@@ -4420,36 +4405,35 @@ function viewArchivedStudent(index) {
     });
 
     const isLowerForm = form === 'form1' || form === 'form2';
-    const isUpperForm = !isLowerForm;
     const studentExamNo = student["Exam Number"];
 
-    // Build results table body (6 columns like progress report)
+    // Build results table body
     const tbody = document.getElementById('archiveResultsBody');
     tbody.innerHTML = '';
 
     let passCount = 0;
     let subjectCount = 0;
-    let totalScore = 0;
-    let allScores = [];
 
-    const sortedSubjects = [...ALL_SUBJECTS].sort();
-
-    sortedSubjects.forEach(sub => {
+    ALL_SUBJECTS.forEach(sub => {
         const rawScore = student[sub];
         if (rawScore === undefined || rawScore === null || rawScore.toString().trim() === '') return;
 
         const score = parseInt(rawScore);
         let grade = '-';
         let position = '-';
-        let remark = '';
+        let remark = '-';
+        let status = '-';
 
         if (!isNaN(score)) {
             const gr = getGradeAndRemark(form, score);
             grade = gr.grade;
             remark = gr.remark;
             subjectCount++;
-            totalScore += score;
-            allScores.push(score);
+
+            // Lower form remark override — same as front page progress report
+            if (isLowerForm) {
+                remark = lowerFormRemarkFromGrade(grade);
+            }
 
             // Position
             if (subjectPositions[sub] && subjectPositions[sub][studentExamNo] !== undefined) {
@@ -4458,73 +4442,71 @@ function viewArchivedStudent(index) {
 
             // Pass/Fail per subject
             if (isLowerForm) {
-                if (['A', 'B', 'C', 'D'].includes(grade)) passCount++;
-                remark = lowerFormRemarkFromGrade(grade);
+                status = ['A', 'B', 'C', 'D'].includes(grade) ? 'Pass' : 'Fail';
             } else {
-                if (parseInt(grade) <= 8) passCount++;
+                status = ['1', '2', '3', '4', '5', '6', '7', '8'].includes(grade) ? 'Pass' : 'Fail';
             }
+
+            if (status === 'Pass') passCount++;
         }
 
-        const teacher = (currentConfig && currentConfig.teachers && currentConfig.teachers[form] && currentConfig.teachers[form][sub]) || '';
+        // Teacher from config if available
+        const teacher = (currentConfig && currentConfig.teachers && currentConfig.teachers[form] && currentConfig.teachers[form][sub]) ? currentConfig.teachers[form][sub] : '';
 
         const row = document.createElement('tr');
-        row.innerHTML =
-            '<td style="border:1px solid black;padding:4px 3px;text-align:left;">' + sub + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + (isNaN(score) ? rawScore : score) + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + grade + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + position + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + remark + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + teacher + '</td>';
+        row.innerHTML = `
+            <td style="border:1px solid black;padding:4px 3px;text-align:left;">${sub}</td>
+            <td style="border:1px solid black;padding:4px 3px;text-align:center;">${rawScore}</td>
+            <td style="border:1px solid black;padding:4px 3px;text-align:center;">${grade}</td>
+            <td style="border:1px solid black;padding:4px 3px;text-align:center;">${position}</td>
+            <td style="border:1px solid black;padding:4px 3px;text-align:center;">${remark}</td>
+            <td style="border:1px solid black;padding:4px 3px;text-align:center;">${teacher}</td>
+        `;
         tbody.appendChild(row);
     });
 
-    // Last row: AVERAGE (forms 1&2) or AGGREGATE (forms 3&4)
-    const lastRow = document.createElement('tr');
-    const labelCell = '<td style="border:1px solid black;padding:4px 3px;font-weight:bold;text-align:left;">' + (isUpperForm ? 'AGGREGATE' : 'AVERAGE (BEST 6)') + '</td>';
+    // Overall pass/fail: same logic as main system (6+ subject passes)
+    const overallStatus = subjectCount >= 4 ? (passCount >= 6 ? 'Pass' : 'Fail') : '-';
+    const statusColor = overallStatus === 'Pass' ? 'green' : (overallStatus === 'Fail' ? 'red' : 'black');
 
-    let aggregate = '-';
-    let best6Total = 0;
-    let avgBest6 = '-';
-
-    // Compute best 6 and aggregate
-    const sortedByScore = [...allScores].sort((a, b) => b - a);
-    const best6Scores = sortedByScore.slice(0, 6);
-    best6Total = best6Scores.reduce((s, x) => s + x, 0);
-    avgBest6 = best6Scores.length > 0 ? (best6Total / best6Scores.length).toFixed(1) : '-';
-
-    // Aggregate for upper forms (sum of best 6 grade numbers)
-    let gradeValues = [];
-    sortedSubjects.forEach(sub => {
+    // --- SURGICAL FIX: Compute Best 6, Aggregate, Position in Class ---
+    // Collect all numeric scores with their grade values for ranking
+    let allScoresWithGrades = [];
+    ALL_SUBJECTS.forEach(sub => {
         const raw = student[sub];
         if (raw && !isNaN(parseInt(raw))) {
             const gr = getGradeAndRemark(form, parseInt(raw));
-            if (!isNaN(parseInt(gr.grade))) gradeValues.push(parseInt(gr.grade));
+            allScoresWithGrades.push({ subject: sub, score: parseInt(raw), grade: gr.grade });
         }
     });
+
+    // Best 6 total (sum of top 6 raw scores)
+    const sortedByScore = [...allScoresWithGrades].sort((a, b) => b.score - a.score);
+    const best6Scores = sortedByScore.slice(0, 6);
+    const best6Total = best6Scores.reduce((s, x) => s + x.score, 0);
+
+    // Average of best 6
+    const avgBest6 = best6Scores.length > 0 ? (best6Total / best6Scores.length).toFixed(1) : '0.0';
+
+    // Aggregate for upper forms (sum of best 6 grade numbers)
+    let gradeValues = allScoresWithGrades.map(x => x.grade).filter(g => !isNaN(parseInt(g))).map(g => parseInt(g));
     gradeValues.sort((a, b) => a - b);
-    aggregate = gradeValues.length >= 6 ? gradeValues.slice(0, 6).reduce((s, v) => s + v, 0) : '-';
+    const aggregate = gradeValues.length >= 6 ? gradeValues.slice(0, 6).reduce((s, v) => s + v, 0) : '-';
 
-    if (isUpperForm) {
-        lastRow.innerHTML = labelCell +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>' +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + aggregate + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>';
-    } else {
-        lastRow.innerHTML = labelCell +
-            '<td style="border:1px solid black;padding:4px 3px;text-align:center;">' + avgBest6 + '</td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>' +
-            '<td style="border:1px solid black;padding:4px 3px;"></td>';
-    }
-    tbody.appendChild(lastRow);
-
-    // Compute position in class
+    // Position in class: compute aggregate for all students and rank
     let allStudentAggregates = [];
     allStudents.forEach(s => {
+        let vals = [];
+        ALL_SUBJECTS.forEach(sub => {
+            const raw = s[sub];
+            if (raw && !isNaN(parseInt(raw))) {
+                const gr = getGradeAndRemark(form, parseInt(raw));
+                if (!isNaN(parseInt(gr.grade))) vals.push(parseInt(gr.grade));
+                else vals.push(gr.grade === '-' ? 99 : (['A','B','C','D','F'].indexOf(gr.grade) >= 0 ? ['A','B','C','D','F'].indexOf(gr.grade) : 99));
+            }
+        });
         if (isLowerForm) {
+            // Lower forms: rank by sum of best 6 raw scores
             let sc = [];
             ALL_SUBJECTS.forEach(sub => {
                 const raw = s[sub];
@@ -4534,6 +4516,7 @@ function viewArchivedStudent(index) {
             const b6 = sc.slice(0, 6).reduce((x, y) => x + y, 0);
             allStudentAggregates.push({ examNo: s["Exam Number"], agg: b6 });
         } else {
+            // Upper forms: rank by sum of best 6 grade numbers (lower is better)
             let gv = [];
             ALL_SUBJECTS.forEach(sub => {
                 const raw = s[sub];
@@ -4548,10 +4531,11 @@ function viewArchivedStudent(index) {
         }
     });
 
+    // Sort and assign positions (tied = same position)
     if (isLowerForm) {
-        allStudentAggregates.sort((a, b) => b.agg - a.agg);
+        allStudentAggregates.sort((a, b) => b.agg - a.agg); // Higher total = better
     } else {
-        allStudentAggregates.sort((a, b) => a.agg - b.agg);
+        allStudentAggregates.sort((a, b) => a.agg - b.agg); // Lower aggregate = better
     }
     let lastAgg = null, lastPos = 0;
     allStudentAggregates.forEach((item, i) => {
@@ -4562,56 +4546,67 @@ function viewArchivedStudent(index) {
     });
     const studentRank = allStudentAggregates.find(x => x.examNo === studentExamNo);
     const positionInClass = studentRank ? studentRank.position : '-';
-    const totalStudents = allStudentAggregates.length;
 
-    // Compute final status (Pass/Fail) using same logic as front page
-    let finalStatus = 'Fail';
-    const eng = student['English'];
-    if (eng) {
-        const engGrade = getGradeAndRemark(form, eng).grade;
-        if (isLowerForm) {
-            finalStatus = (passCount >= 6 && ['A', 'B', 'C', 'D'].includes(engGrade)) ? 'Pass' : 'Fail';
-        } else {
-            finalStatus = (passCount >= 6 && parseInt(engGrade) <= 8) ? 'Pass' : 'Fail';
-        }
+    // --- SURGICAL FIX: Add AVERAGE/AGGREGATE last row to table (same as front page) ---
+    const isUpper = form === 'form3' || form === 'form4';
+    const lastRow = tbody.insertRow();
+    const labelCell = lastRow.insertCell();
+    labelCell.style.fontWeight = 'bold';
+    labelCell.style.border = '1px solid black';
+    labelCell.style.padding = '4px 3px';
+    labelCell.textContent = isUpper ? 'AGGREGATE' : 'AVERAGE (BEST 6)';
+    if (isUpper) {
+        const emptyScore = lastRow.insertCell();
+        emptyScore.style.border = '1px solid black';
+        emptyScore.style.padding = '4px 3px';
+        const aggCell = lastRow.insertCell();
+        aggCell.style.border = '1px solid black';
+        aggCell.style.padding = '4px 3px';
+        aggCell.style.textAlign = 'center';
+        aggCell.textContent = aggregate !== '-' ? aggregate : '-';
+    } else {
+        const avgCell = lastRow.insertCell();
+        avgCell.style.border = '1px solid black';
+        avgCell.style.padding = '4px 3px';
+        avgCell.style.textAlign = 'center';
+        avgCell.textContent = best6Total > 0 ? avgBest6 : '-';
+        const emptyGrade = lastRow.insertCell();
+        emptyGrade.style.border = '1px solid black';
+        emptyGrade.style.padding = '4px 3px';
+    }
+    for (var emp = 0; emp < 3; emp++) {
+        const emptyCell = lastRow.insertCell();
+        emptyCell.style.border = '1px solid black';
+        emptyCell.style.padding = '4px 3px';
     }
 
-    // Summary line (matching progress report format)
-    let summaryHTML = '<div style="width:100%;"><br>' +
-        '<div>POSITION : <strong>' + positionInClass + '</strong>&nbsp;&nbsp;&nbsp;&nbsp;OUT OF: <strong>' + totalStudents + '</strong>&nbsp;&nbsp;&nbsp;&nbsp;STATUS: <strong>' + finalStatus + '</strong></div></div>';
-
+    // --- SURGICAL FIX: Summary in same format as front page progress report ---
+    let summaryHTML = '';
     if (isLowerForm) {
-        summaryHTML = '<div style="width:100%;"><br>' +
-            '<div>TOTAL SCORES: <strong>' + (totalScore > 0 ? totalScore : '0') + '</strong>&nbsp;&nbsp;&nbsp;&nbsp;POSITION : <strong>' + positionInClass + '</strong>&nbsp;&nbsp;&nbsp;&nbsp;OUT OF: <strong>' + totalStudents + '</strong>&nbsp;&nbsp;&nbsp;&nbsp;STATUS: <strong>' + finalStatus + '</strong></div></div>';
+        summaryHTML = `
+            <div style="margin-top:10px;font-size:9pt;color:black;">
+                <div>TOTAL SCORES: <strong>${best6Total}</strong>&nbsp;&nbsp;&nbsp;&nbsp;POSITION : <strong>${positionInClass}</strong>&nbsp;&nbsp;&nbsp;&nbsp;OUT OF: <strong>${allStudentAggregates.length}</strong>&nbsp;&nbsp;&nbsp;&nbsp;STATUS: <strong>${overallStatus}</strong></div>
+            </div>
+        `;
+    } else {
+        summaryHTML = `
+            <div style="margin-top:10px;font-size:9pt;color:black;">
+                <div>POSITION : <strong>${positionInClass}</strong>&nbsp;&nbsp;&nbsp;&nbsp;OUT OF: <strong>${allStudentAggregates.length}</strong>&nbsp;&nbsp;&nbsp;&nbsp;STATUS: <strong>${overallStatus}</strong></div>
+            </div>
+        `;
     }
     document.getElementById('archiveSummaryInfo').innerHTML = summaryHTML;
 
-    // Auto-generate comments
-    const avgForComments = best6Scores.length > 0 ? best6Total / best6Scores.length : 0;
-    let teacherComment = '';
-    let headComment = '';
+    // --- SURGICAL FIX: Comments section (matching front page layout) ---
+    const teacherComment = generateTeacherComment(form, student, best6Total > 0 ? parseFloat(avgBest6) : 0, 0, ALL_SUBJECTS.length);
+    const headComment = generateHeadComment(form, student, best6Total > 0 ? parseFloat(avgBest6) : 0, 0, ALL_SUBJECTS.length, positionInClass, allStudentAggregates.length);
+    document.getElementById('archiveCommentsSection').innerHTML = `
+        <p style="margin:5px 0;font-size:9pt;color:black;"><strong>FORM TEACHER'S COMMENT:</strong> <span style="font-style:italic;">${teacherComment}</span></p>
+        <p style="margin:5px 0;font-size:9pt;color:black;"><strong>HEADTEACHER'S COMMENT:</strong> <span style="font-style:italic;">${headComment}</span></p>
+    `;
 
-    // Use a simplified pass check for archive (student object may not have all config-dependent data)
-    const isStudentPass = finalStatus === 'Pass';
-
-    if (isStudentPass) {
-        teacherComment = generateTeacherComment(form, student, avgForComments, passCount, ALL_SUBJECTS.length);
-        headComment = generateHeadComment(form, student, avgForComments, passCount, ALL_SUBJECTS.length, positionInClass, totalStudents);
-    } else {
-        if (avgForComments >= 45) teacherComment = 'Fair effort but needs significant improvement in several subjects to pass.';
-        else teacherComment = 'Needs to work much harder to improve performance across all subjects.';
-        headComment = 'The student has not met the minimum requirements for progression. Extra tuition and parental support are strongly recommended.';
-    }
-
-    document.getElementById('archiveTeacherComment').textContent = teacherComment;
-    document.getElementById('archiveHeadComment').textContent = headComment;
-
-    // Next term opens and fees from config
-    document.getElementById('archiveNextTerm').textContent = (currentConfig && currentConfig.nextTermOpens) ? currentConfig.nextTermOpens : '-';
-    document.getElementById('archiveFees').textContent = (currentConfig && currentConfig.fees) ? currentConfig.fees : '-';
-
-    // Grade key table
-    document.getElementById('archiveGradeKeyPlaceholder').innerHTML = getGradeKeyTableHTML(form);
+    // --- SURGICAL FIX: Grade key section (matching front page) ---
+    document.getElementById('archiveGradeKeySection').innerHTML = getGradeKeyTableHTML(form);
 
     document.getElementById('archiveStudentDetail').classList.remove('hidden');
     window._currentArchiveMatch = match;
@@ -4628,15 +4623,13 @@ function printArchiveDetail() {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Archived Progress Report - Print</title>
+            <title>Archived Result - Print</title>
             <style>
                 body { margin: 0; padding: 15px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
                 table { width: 100%; border-collapse: collapse; font-size: 9pt; }
                 th, td { border: 1px solid black; padding: 4px 3px; }
                 th { background: #ecf0f1; color: #2c3e50; font-weight: 600; text-align: center; }
-                .table-wrapper { overflow-x: auto; width: 100%; }
-                img { max-width: 150px; height: auto; }
-                @page { size: A4 portrait; margin: 2cm 1cm 1cm 1cm; }
+                @page { size: A4 portrait; margin: 1cm; }
             </style>
         </head>
         <body>${detailContent.innerHTML}</body>
@@ -4673,7 +4666,7 @@ function saveArchiveDetailPdf() {
 
         updateLoadingPercent(90);
         const studentName = window._currentArchiveMatch ? window._currentArchiveMatch.name : 'Student';
-        pdf.save(`${studentName.replace(/ /g, '_')}_Archived_Progress_Report.pdf`);
+        pdf.save(`${studentName.replace(/ /g, '_')}_Archived_Result.pdf`);
 
         updateLoadingPercent(100);
         hideLoading();
@@ -5336,9 +5329,27 @@ async function displayGradesSheet() {
         studentsWithMetrics.push({ student, metrics, examNo: student["Exam Number"] });
     }
 
-    // Calculate positions
+    // Calculate positions — passed students first, then failed students
     let rankableStudents = studentsWithMetrics.filter(s => s.metrics.rankable);
-    rankableStudents.sort((a, b) => a.metrics.overallMetric - b.metrics.overallMetric);
+    
+    // Separate into passed and failed groups, each sorted by performance (best first)
+    let passedStudents = rankableStudents.filter(s => s.metrics.overallRemark === 'Pass');
+    let failedStudents = rankableStudents.filter(s => s.metrics.overallRemark !== 'Pass');
+    
+    passedStudents.sort((a, b) => a.metrics.overallMetric - b.metrics.overallMetric);
+    failedStudents.sort((a, b) => a.metrics.overallMetric - b.metrics.overallMetric);
+    
+    // Combine: passed first, then failed; assign positions with tie handling
+    let combined = [...passedStudents, ...failedStudents];
+    let lastMetric = null, lastPos = 0;
+    combined.forEach((s, i) => {
+        const metricValue = s.metrics.overallMetric;
+        const pos = (metricValue === lastMetric) ? lastPos : i + 1;
+        s.__pos = pos;
+        s.__numericPos = pos;
+        lastMetric = metricValue;
+        lastPos = pos;
+    });
 
     studentsWithMetrics.forEach(({ student, metrics, examNo }) => {
         let position = '-';
@@ -5347,10 +5358,8 @@ async function displayGradesSheet() {
         if (metrics.rankable) {
              const studentMetric = rankableStudents.find(s => s.examNo === examNo);
              if (studentMetric) {
-                const metricValue = studentMetric.metrics.overallMetric;
-                let actualRank = rankableStudents.findIndex(s => s.metrics.overallMetric === metricValue) + 1;
-                position = `${actualRank}`;
-                numericPosition = actualRank;
+                position = `${studentMetric.__pos}`;
+                numericPosition = studentMetric.__numericPos;
             }
         }
         
@@ -5746,20 +5755,20 @@ async function showStudentMarksList() {
         const snVal = s["SN"] || '';
         const sneVisible = currentConfig && currentConfig.sneColumnVisible !== false;
         const row = document.createElement('tr');
-        const inputDisabled = isLocked ? 'readonly style="width:80px;padding:6px;text-align:center;border:1px solid #e74c3c;border-radius:4px;background:#f5f5f5;color:#999;"' : 'oninput="updateStudentScore(\'' + form + '\', ' + i + ', \'' + subject + '\', this.value)" style="width:80px;padding:6px;text-align:center;border:1px solid #cc6600;border-radius:4px;"';
+        const inputDisabled = isLocked ? 'readonly style="width:80px;padding:6px;text-align:center;border:1px solid #e74c3c;border-radius:4px;background:#f5f5f5;color:#999;"' : 'oninput="updateStudentScore(\'' + form + '\', ' + i + ', \'' + subject + '\', this.value)" style="width:80px;padding:6px;text-align:center;border:2px solid #e91e8c;border-radius:8px;background:#fce4ec;color:#c2185b;font-weight:700;font-size:1em;"';
         row.innerHTML = `
-            <td style="border:1px solid #cc6600;padding:8px;text-align:center;">${examNo}</td>
-            <td style="border:1px solid #cc6600;padding:8px;text-align:left;">${name}</td>
-            <td style="border:1px solid #cc6600;padding:8px;text-align:center;width:40px;">${sex}</td>
-            ${sneVisible ? `<td style="border:1px solid #cc6600;padding:8px;text-align:center;width:30px;">
+            <td style="border:2px solid #6c3483;padding:8px 6px;text-align:center;background:#f3e5f5;font-weight:600;font-size:0.9em;">${examNo}</td>
+            <td style="border:2px solid #6c3483;padding:8px 6px;text-align:left;background:#f5f5f5;font-size:0.9em;">${name}</td>
+            <td style="border:2px solid #6c3483;padding:8px 6px;text-align:center;width:40px;background:#ede7f6;font-weight:600;font-size:0.9em;">${sex}</td>
+            ${sneVisible ? `<td style="border:2px solid #6c3483;padding:8px 6px;text-align:center;width:30px;background:#ede7f6;font-size:0.85em;">
                 <input type="text" 
                        id="sn_${i}" 
                        value="${snVal}" 
                        oninput="updateStudentSN('${form}', ${i}, this.value)"
-                       style="width:35px;padding:4px;text-align:center;border:1px solid #cc6600;border-radius:4px;font-size:0.85em;"
+                       style="width:35px;padding:4px;text-align:center;border:2px solid #6c3483;border-radius:6px;font-size:0.85em;background:#f3e5f5;"
                        placeholder=" ">
             </td>` : ''}
-            <td style="border:1px solid #cc6600;padding:8px;text-align:center;">
+            <td style="border:2px solid #6c3483;padding:8px 6px;text-align:center;background:#fce4ec;">
                 <input type="text" 
                        id="score_${i}" 
                        value="${val}" 
@@ -5790,8 +5799,7 @@ async function showStudentMarksList() {
     // Apply SNE column visibility to header
     applySNEColumnToTable();
 
-    // Auto-activate voice mic now that students are loaded
-    setTimeout(function() { startVoiceExamNumber(true); }, 100);
+    // Voice mic now activates when user clicks "Show Voice Entry" button
 }
 
 function updateStudentScore(form, index, subject, value) {
@@ -5833,27 +5841,30 @@ function filterStudentMarks(){
 // ============================================================
 // VOICE SCORE ENTRY
 
-// Toggle to hide/unhide the voice score entry panel
-var _voicePanelVisible = true;
-function toggleVoicePanel() {
-    var panel = document.getElementById('voiceControlPanel');
-    var btn = document.getElementById('voiceToggleBtn');
-    if (!panel || !btn) return;
-    if (_voicePanelVisible) {
-        panel.style.display = 'none';
-        btn.textContent = 'Show Voice Entry';
-        btn.style.background = '#2c3e50';
-        // Cancel any active voice session when hiding
-        if (_voiceCallActive) {
-            _cancelVoiceEntry();
-        }
+// Single START/STOP button for voice score entry
+// Default: voice is OFF, button shows START (green)
+var _voiceIsRunning = false;
+function toggleVoiceStartStop() {
+    var btn = document.getElementById('voiceStartStopBtn');
+    if (!btn) return;
+    if (_voiceIsRunning) {
+        // STOP: cancel voice entry
+        _cancelVoiceEntry();
+        _voiceIsRunning = false;
+        btn.innerHTML = '&#9654; START';
+        btn.style.background = '#27ae60';
+        _setVoiceStatus('Voice entry stopped. Click START to begin.', '#999');
+        _setVoiceHeard('');
+        document.getElementById('voiceCurrentStudent').style.display = 'none';
     } else {
-        panel.style.display = 'block';
-        btn.textContent = 'Hide Voice Entry';
-        btn.style.background = '#8e44ad';
+        // START: begin voice exam number calling
+        _voiceIsRunning = true;
+        btn.innerHTML = '&#9632; STOP';
+        btn.style.background = '#e74c3c';
+        startVoiceExamNumber();
     }
-    _voicePanelVisible = !_voicePanelVisible;
 }
+
 // Uses Web Speech API to call out exam numbers and scores
 // ============================================================
 
@@ -6000,23 +6011,27 @@ function _cancelVoiceEntry() {
     _voiceCurrentRow = null;
     _voiceScoreRetryCount = 0;
     _voiceLockedIndices = {}; // Clear voice-locked indices — editing is possible again
-    _showRetryButton(false);
     _highlightRow(null);
     // Remove click blocker
     _removeClickBlocker();
     // Unfreeze all scored rows so editing is possible again
     _unfreezeAllRows();
-    document.getElementById('voiceExamBtn').style.background = '#8e44ad';
-    document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Call Exam Number';
+    // Update START/STOP button to START state
+    var btn = document.getElementById('voiceStartStopBtn');
+    if (btn) {
+        _voiceIsRunning = false;
+        btn.innerHTML = '&#9654; START';
+        btn.style.background = '#27ae60';
+    }
     document.getElementById('voiceCurrentStudent').style.display = 'none';
-    _setVoiceStatus('Voice entry cancelled. Click "Call Exam Number" to start again.', '#555');
+    _setVoiceStatus('Voice entry stopped. Click START to begin.', '#999');
     _setVoiceHeard('');
 }
 
 function _wordsToNumber(text) {
     // Convert spoken number words into digit strings for accurate matching
     var wordMap = {
-        'ZERO':'0','ZIRO':'0','ONE':'1','WON':'1','TWO':'2','TOO':'2','TO':'2','THREE':'3','FREE':'3','TREE':'3',
+        'ZERO':'0','ZIRO':'0','OH':'0','O':'0','ONE':'1','WON':'1','TWO':'2','TOO':'2','TO':'2','THREE':'3','FREE':'3','TREE':'3',
         'FOUR':'4','FOR':'4','FORE':'4','FIVE':'5','SIX':'6','SEVEN':'7','SEVREN':'7','SEVIN':'7',
         'EIGHT':'8','ATE':'8','AIGHT':'8','NINE':'9','TEN':'10','ELEVEN':'11',
         'TWELVE':'12','THIRTEEN':'13','FOURTEEN':'14','FIFTEEN':'15','SIXTEEN':'16','SEVENTEEN':'17',
@@ -6029,11 +6044,37 @@ function _wordsToNumber(text) {
         return input.replace(/[^0-9]/g, '');
     }
     var words = input.split(/[\s,]+/).filter(function(w) { return w.length > 0; });
+
+    // DETECT DIGIT-BY-DIGIT MODE: if all words map to single digits (0-9), concatenate them
+    var allSingleDigits = true;
+    var digitChars = [];
+    for (var i = 0; i < words.length; i++) {
+        var w = words[i];
+        if (w === 'AND' || w === '&' || w === 'A') continue;
+        if (wordMap[w] !== undefined) {
+            var val = parseInt(wordMap[w], 10);
+            if (val >= 0 && val <= 9) {
+                digitChars.push(wordMap[w]);
+            } else {
+                allSingleDigits = false;
+                break;
+            }
+        } else {
+            allSingleDigits = false;
+            break;
+        }
+    }
+    // If 1+ single digits detected (e.g. "zero two five" -> "025" or "zero" -> "0"), return concatenated
+    if (allSingleDigits && digitChars.length >= 1) {
+        return digitChars.join('');
+    }
+
+    // COMPOUND NUMBER MODE: e.g. "twenty five" -> 25
     var total = 0;
     var current = 0;
     for (var i = 0; i < words.length; i++) {
         var w = words[i];
-        if (w === 'AND' || w === '&' || w === 'A') continue; // skip connectives
+        if (w === 'AND' || w === '&' || w === 'A') continue;
         if (wordMap[w] !== undefined) {
             var val = parseInt(wordMap[w], 10);
             if (val === 100) {
@@ -6050,7 +6091,7 @@ function _wordsToNumber(text) {
         }
     }
     total += current;
-    if (total === 0) return null; // no number found
+    if (total === 0) return null;
     return String(total);
 }
 
@@ -6070,8 +6111,18 @@ function _getSpeechRecognition() {
         var SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
         if (SGL) {
             var grammarList = new SGL();
-            var numGrammar = '#JSGF V1.0; grammar numbers; public <number> = '
-                + 'zero | one | two | three | four | five | six | seven | eight | nine '
+            // CRITICAL: <digit> MUST include ALL number words (oh, zero, one, two, ..., nine)
+            // so that <digit> <digit> <digit> can match "oh two five" or "zero two five"
+            var numGrammar = '#JSGF V1.0; grammar numbers; '
+                + 'public <digit> = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | oh | zero | one | two | three | four | five | six | seven | eight | nine; '
+                + 'public <number> = '
+                // Multi-digit patterns FIRST so engine prefers matching all spoken digits
+                + '<digit> <digit> <digit> <digit> <digit> '
+                + '| <digit> <digit> <digit> <digit> '
+                + '| <digit> <digit> <digit> '
+                + '| <digit> <digit> '
+                + '| <digit> '
+                // Compound numbers second
                 + '| ten | eleven | twelve | thirteen | fourteen | fifteen | sixteen | seventeen | eighteen | nineteen '
                 + '| twenty | twenty one | twenty two | twenty three | twenty four | twenty five '
                 + '| twenty six | twenty seven | twenty eight | twenty nine '
@@ -6089,10 +6140,7 @@ function _getSpeechRecognition() {
                 + '| eighty six | eighty seven | eighty eight | eighty nine '
                 + '| ninety | ninety one | ninety two | ninety three | ninety four | ninety five '
                 + '| ninety six | ninety seven | ninety eight | ninety nine '
-                + '| one hundred | one hundred and <number> '
-                + '| <digit> | <digit> <digit> | <digit> <digit> <digit> | <digit> <digit> <digit> <digit> '
-                + '| <digit> <digit> <digit> <digit> <digit>; '
-                + 'public <digit> = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;';
+                + '| one hundred | one hundred and <number>;'
             grammarList.addFromString(numGrammar, 100);
             recognition.grammars = grammarList;
         }
@@ -6133,20 +6181,7 @@ function _stopRecognition() {
     }
 }
 
-// --- Show or hide the Retry Score button ---
-function _showRetryButton(show) {
-    var btn = document.getElementById('voiceRetryBtn');
-    if (btn) btn.style.display = show ? 'inline-flex' : 'none';
-}
-
-// --- Manual retry: user clicks "Retry Score" ---
-function _manualRetryScore() {
-    if (!_voiceCallActive || _voiceMode !== 'score') return;
-    _voiceScoreRetryCount = 0;
-    _showRetryButton(false);
-    _startScoreListening();
-}
-
+// --- Manual retry: user clicks STOP then START to retry ---
 // --- Helper: start listening for score with auto-retry ---
 function _startScoreListening() {
     _voiceMode = 'score';
@@ -6193,7 +6228,6 @@ function _startScoreListening() {
             _voiceCallActive = false;
             _unfreezeAllRows(); // Unfreeze rows since calling is effectively stopped
             _setVoiceStatus('Microphone access denied. Allow mic access in browser settings.', '#e74c3c');
-            _showRetryButton(true);
         }
         // For 'no-speech', 'aborted', and other errors, stay silent — onend handles retry automatically
         // Mic stays open, session continues uninterrupted
@@ -6267,9 +6301,13 @@ function startVoiceExamNumber(silent) {
     _setVoiceStatus('Listening for exam number... Speak now.', '#8e44ad');
     _setVoiceHeard('');
     document.getElementById('voiceCurrentStudent').style.display = 'none';
-    document.getElementById('voiceExamBtn').style.background = '#6c3483';
-    // SURGICAL FIX: Show Cancel label on the call button so user knows clicking it cancels
-    document.getElementById('voiceExamBtn').innerHTML = '<span style="font-size:1.3em;">&#127908;</span> Cancel Calling';
+    // Update START/STOP button to show STOP
+    var btn = document.getElementById('voiceStartStopBtn');
+    if (btn) {
+        _voiceIsRunning = true;
+        btn.innerHTML = '&#9632; STOP';
+        btn.style.background = '#e74c3c';
+    }
     // SURGICAL FIX: Play Sound 1 (single beep) only on first click, not on auto-restart
     if (!silent) _playSound1_CallExamNumber();
 
@@ -6337,11 +6375,28 @@ function _matchExamNumber(transcript, form, subject) {
     // Clean transcript: remove spaces, dots, dashes, common speech artifacts
     var cleaned = transcript.replace(/[\s.\-_,]/g, '');
 
-    // Try direct match first
+    // Pad leading zeros for numeric comparison (e.g. '25' becomes '025' if exam numbers are 3-digit)
+    var cleanedPadded = cleaned;
+    if (/^[0-9]+$/.test(cleaned)) {
+        // Find the max digit length among all exam numbers
+        var maxDigits = 0;
+        for (var k = 0; k < students.length; k++) {
+            var rawExam = (students[k]['Exam Number'] || '').replace(/[^0-9]/g, '');
+            if (rawExam.length > maxDigits) maxDigits = rawExam.length;
+        }
+        if (maxDigits > cleaned.length) {
+            // Manual pad (padStart may not exist in older browsers)
+            var pad = '';
+            for (var p = cleaned.length; p < maxDigits; p++) pad += '0';
+            cleanedPadded = pad + cleaned;
+        }
+    }
+
+    // Try direct match first (with padded version too)
     var matchIndex = -1;
     for (var i = 0; i < students.length; i++) {
         var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
-        if (cleaned === examNo) {
+        if (cleaned === examNo || cleanedPadded === examNo) {
             matchIndex = i;
             break;
         }
@@ -6351,15 +6406,16 @@ function _matchExamNumber(transcript, form, subject) {
     if (matchIndex === -1) {
         for (var i = 0; i < students.length; i++) {
             var examNo = (students[i]['Exam Number'] || '').toUpperCase().replace(/[\s.\-_,]/g, '');
-            if (examNo.length > 1 && cleaned.length > 1) {
+            if (examNo.length > 1 && (cleaned.length > 1 || cleanedPadded.length > 1)) {
                 // Check if transcript ends with the numeric part
                 var numPart = examNo.replace(/^[A-Z]+/, '');
-                if (numPart && cleaned.indexOf(numPart) !== -1) {
+                if (numPart && (cleaned.indexOf(numPart) !== -1 || cleanedPadded.indexOf(numPart) !== -1)) {
                     matchIndex = i;
                     break;
                 }
-                // Check if transcript contains the full exam number
-                if (cleaned.indexOf(examNo) !== -1 || examNo.indexOf(cleaned) !== -1) {
+                // Check if transcript contains the full exam number (try both cleaned and padded)
+                if (cleaned.indexOf(examNo) !== -1 || examNo.indexOf(cleaned) !== -1 ||
+                    cleanedPadded.indexOf(examNo) !== -1 || examNo.indexOf(cleanedPadded) !== -1) {
                     matchIndex = i;
                     break;
                 }
@@ -6418,7 +6474,6 @@ function _matchExamNumber(transcript, form, subject) {
 
     // FAST TRANSITION: Immediately start listening for score (no delay)
     _voiceScoreRetryCount = 0;
-    _showRetryButton(false);
     _startScoreListening();
 }
 
