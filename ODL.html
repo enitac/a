@@ -5844,6 +5844,7 @@ function filterStudentMarks(){
 // Single START/STOP button for voice score entry
 // Default: voice is OFF, button shows START (green)
 var _voiceIsRunning = false;
+
 function toggleVoiceStartStop() {
     var btn = document.getElementById('voiceStartStopBtn');
     if (!btn) return;
@@ -5857,7 +5858,8 @@ function toggleVoiceStartStop() {
         _setVoiceHeard('');
         document.getElementById('voiceCurrentStudent').style.display = 'none';
     } else {
-        // START: begin voice exam number calling
+        // START: begin voice exam number calling directly.
+        // SpeechRecognition handles mic permission natively — no pre-check needed.
         _voiceIsRunning = true;
         btn.innerHTML = '&#9632; STOP';
         btn.style.background = '#e74c3c';
